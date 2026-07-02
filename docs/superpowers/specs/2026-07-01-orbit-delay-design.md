@@ -1,4 +1,4 @@
-# Orbit — Creative Delay Plugin — Design Spec
+å# Orbit — Creative Delay Plugin — Design Spec
 
 **Date:** 2026-07-01
 **Status:** Approved by Jose (2026-07-01)
@@ -34,27 +34,34 @@ A creative delay plugin where echoes are **glowing orbs the user drags on a 2D p
 
 ## 4. Architecture
 
-Three cleanly separated layers:
+Orbit is plugin #1 of a planned **product family** (brand name TBD). Everything reusable lives in a `core/` library, built as its own CMake target from day one, so future plugins (reverb, saturator, …) consume it rather than copy it. When plugin #2 starts, `core/` graduates to its own repo; until then it stays here to avoid multi-repo overhead.
 
 ```
 orbit-delay/
-├── dsp/          # Pure C++ DSP — no JUCE UI deps, unit-testable in isolation
-│   ├── MultiTapDelay      (4 taps, per-tap time/feedback/reverse/pitch)
-│   ├── CharacterProcessor (Clean / Tape / Grit modes)
-│   ├── Ducker             (sidechain from dry signal)
-│   ├── PitchShifter       (±12 semitones on repeats)
-│   ├── ModEngine          (LFOs modulating delay lines)
-│   └── FreezeBuffer       (infinite loop of captured audio)
-├── plugin/       # JUCE AudioProcessor shell, parameter layer, preset system
+├── core/         # Reusable product-family library (own CMake target, no Orbit-specific code)
+│   ├── dsp/               # Shared DSP building blocks — real-time safe, no UI deps
+│   │   ├── DelayLine, Ducker, PitchShifter, ModEngine (LFOs),
+│   │   ├── Saturation/CharacterStage (tape/BBD/clean — reusable coloring stage)
+│   │   └── FreezeBuffer
+│   ├── state/             # Versioned preset/state serialization (see below)
+│   ├── licensing/         # Product-agnostic serial-key validation (productId field)
+│   └── uibridge/          # Lock-free FIFO visualization feed, APVTS attachment helpers
+├── plugin/       # Orbit-specific: MultiTapDelay topology, AudioProcessor shell, parameters
 ├── ui/           # UI scaffolding + integration contract (visuals from Jose's design)
-├── presets/      # ~40 factory presets (JSON/XML via ValueTree)
-├── tests/        # DSP unit tests + pluginval harness
+├── presets/      # ~40 factory presets
+├── tests/        # Unit tests (core + plugin) + pluginval harness
 └── packaging/    # Installer scripts, signing, notarization
 ```
 
-- **DSP engine** — real-time safe: no allocations, locks, or logging on the audio thread; denormal protection throughout.
+- **Core DSP** — real-time safe: no allocations, locks, or logging on the audio thread; denormal protection throughout. Orbit-specific wiring (the 4-tap topology) lives in `plugin/`, not `core/`.
 - **Parameter/state layer** — JUCE `AudioProcessorValueTreeState` (APVTS). Every control, including each orb's X/Y, is a host-automatable parameter. Handles preset save/load and DAW session recall.
 - **UI layer** — reads audio levels/tap activity via a lock-free FIFO for reactive visuals. Never touches the audio thread directly.
+
+### Product-family readiness rules
+
+- **Versioned, namespaced state:** every preset/session blob carries `{ product: "orbit", stateVersion: N }`; loaders migrate old versions forward. Future plugins share the same envelope format, enabling a family-wide preset browser later.
+- **Brand/name in one place:** company name, product name, bundle IDs, and manufacturer codes are CMake variables in a single `Branding.cmake` — the TBD brand (and even the Orbit name) is a one-file change.
+- **No cross-plugin runtime coupling in v1:** family integration means shared code and formats, not plugins talking to each other in-session. That keeps YAGNI honest; a message bus can be added to `core/` later without breaking anything.
 
 ---
 
@@ -113,7 +120,7 @@ What Jose's Claude Design UI can rely on from the engine:
 
 ## 7. Commercial Packaging
 
-- **Licensing:** simple serial-key validation (offline-friendly, no iLok for VST3/AU). Key generator kept private, outside this repo.
+- **Licensing:** simple serial-key validation (offline-friendly, no iLok for VST3/AU). Keys embed a `productId` so the same scheme covers the whole future product family. Key generator kept private, outside this repo.
 - **Installers:** signed + notarized `.pkg` (macOS, requires Apple Developer ID), signed `.exe` (Windows, requires code-signing cert).
 - **AAX:** same codebase, additional build target once Avid agreement + PACE signing are in place.
 
@@ -130,7 +137,7 @@ What Jose's Claude Design UI can rely on from the engine:
 
 ## 9. Build Order
 
-1. Repo scaffolding: CMake + JUCE skeleton plugin that passes audio and loads in a DAW
+1. Repo scaffolding: CMake + JUCE skeleton plugin that passes audio and loads in a DAW (`core/` as separate target, `Branding.cmake` from the start)
 2. Core multi-tap delay + tempo sync + ducking
 3. Parameter layer (APVTS) + UI integration contract surfaces
 4. Character modes (Clean/Tape/Grit)
