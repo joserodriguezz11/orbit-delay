@@ -12,7 +12,8 @@ juce_add_plugin(OrbitDelay
 
 target_sources(OrbitDelay PRIVATE
     PluginProcessor.cpp
-    OrbitEngine.cpp)
+    OrbitEngine.cpp
+    Parameters.cpp)
 
 target_compile_definitions(OrbitDelay PUBLIC
     JUCE_WEB_BROWSER=0
