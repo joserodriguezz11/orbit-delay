@@ -8,7 +8,9 @@ add_executable(orbit_tests
     core/SanityTests.cpp
     core/DelayLineTests.cpp
     core/TempoSyncTests.cpp
-    core/DuckerTests.cpp)
+    core/DuckerTests.cpp
+    plugin/OrbitEngineTests.cpp
+    ${CMAKE_SOURCE_DIR}/plugin/OrbitEngine.cpp)
 
 target_link_libraries(orbit_tests PRIVATE
     orbit_core
