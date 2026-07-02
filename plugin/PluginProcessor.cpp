@@ -6,7 +6,16 @@ OrbitAudioProcessor::OrbitAudioProcessor()
     : AudioProcessor(BusesProperties()
           .withInput("Input", juce::AudioChannelSet::stereo(), true)
           .withOutput("Output", juce::AudioChannelSet::stereo(), true)),
-      apvts(*this, nullptr, "PARAMS", params::createLayout()) {}
+      apvts(*this, nullptr, "PARAMS", params::createLayout()) {
+    for (int i = 0; i < orbit::OrbitEngine::kNumTaps; ++i) {
+        tapParams_[static_cast<size_t>(i)].enabled  = apvts.getRawParameterValue(params::tapEnabledId(i));
+        tapParams_[static_cast<size_t>(i)].time     = apvts.getRawParameterValue(params::tapTimeId(i));
+        tapParams_[static_cast<size_t>(i)].sync     = apvts.getRawParameterValue(params::tapSyncId(i));
+        tapParams_[static_cast<size_t>(i)].feedback = apvts.getRawParameterValue(params::tapFeedbackId(i));
+    }
+    dryWetParam_ = apvts.getRawParameterValue(params::kDryWetId);
+    duckParam_   = apvts.getRawParameterValue(params::kDuckId);
+}
 
 void OrbitAudioProcessor::prepareToPlay(double sampleRate, int samplesPerBlock) {
     engine_.prepare(sampleRate, samplesPerBlock, getTotalNumOutputChannels());
@@ -22,16 +31,16 @@ bool OrbitAudioProcessor::isBusesLayoutSupported(const BusesLayout& layouts) con
 
 void OrbitAudioProcessor::updateEngineFromParameters() {
     for (int i = 0; i < orbit::OrbitEngine::kNumTaps; ++i) {
+        const auto& p = tapParams_[static_cast<size_t>(i)];
         orbit::TapSettings tap;
-        tap.enabled = apvts.getRawParameterValue(params::tapEnabledId(i))->load() > 0.5f;
-        tap.sync = static_cast<orbit::dsp::SyncDivision>(
-            static_cast<int>(apvts.getRawParameterValue(params::tapSyncId(i))->load()));
-        tap.timeSeconds = apvts.getRawParameterValue(params::tapTimeId(i))->load() / 1000.0f;
-        tap.feedback = apvts.getRawParameterValue(params::tapFeedbackId(i))->load();
+        tap.enabled = p.enabled->load() > 0.5f;
+        tap.sync = static_cast<orbit::dsp::SyncDivision>(static_cast<int>(p.sync->load()));
+        tap.timeSeconds = p.time->load() / 1000.0f;
+        tap.feedback = p.feedback->load();
         engine_.setTap(i, tap);
     }
-    engine_.setDryWet(apvts.getRawParameterValue(params::kDryWetId)->load());
-    engine_.setDuckAmount(apvts.getRawParameterValue(params::kDuckId)->load());
+    engine_.setDryWet(dryWetParam_->load());
+    engine_.setDuckAmount(duckParam_->load());
 }
 
 void OrbitAudioProcessor::processBlock(juce::AudioBuffer<float>& buffer, juce::MidiBuffer&) {
