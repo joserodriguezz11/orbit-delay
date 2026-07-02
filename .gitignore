@@ -1,0 +1,30 @@
+# Build artifacts
+build/
+cmake-build-*/
+*.o
+*.a
+*.dylib
+*.so
+*.dll
+
+# JUCE / plugin binaries
+*.vst3
+*.component
+*.aaxplugin
+
+# IDE
+.vscode/
+.idea/
+*.xcodeproj/xcuserdata/
+DerivedData/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Secrets — never commit
+.env
+*.p12
+*.provisionprofile
+credentials/
+signing/
