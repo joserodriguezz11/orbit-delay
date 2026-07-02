@@ -13,7 +13,7 @@ public:
     void prepare(double sampleRate, float maxDelaySeconds);
     void reset();
 
-    void setDelaySeconds(float seconds);   // clamped to [0, maxDelaySeconds]
+    void setDelaySeconds(float seconds);   // clamped to [one sample, maxDelaySeconds]
     void setFeedback(float amount);        // clamped to [0, kMaxFeedback]
 
     // Reads the delayed sample, writes input + feedback into the line,

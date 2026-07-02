@@ -21,7 +21,7 @@ void DelayLine::setDelaySeconds(float seconds) {
     const float maxDelay =
         static_cast<float>(buffer_.size() - 2) / static_cast<float>(sampleRate_);
     seconds = std::clamp(seconds, 0.0f, maxDelay);
-    delaySamples_ = seconds * static_cast<float>(sampleRate_);
+    delaySamples_ = std::max(1.0f, seconds * static_cast<float>(sampleRate_));
 }
 
 void DelayLine::setFeedback(float amount) {

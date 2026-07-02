@@ -60,6 +60,15 @@ TEST_CASE("DelayLine clamps feedback and never blows up") {
     CHECK(maxAbs <= 1.5f);
 }
 
+TEST_CASE("DelayLine treats zero delay as a one-sample delay") {
+    DelayLine line;
+    line.prepare(48000.0, 1.0f);
+    line.setDelaySeconds(0.0f);
+    const auto out = impulseResponse(line, 4);
+    CHECK(out[0] == Approx(0.0f).margin(1e-6f));
+    CHECK(out[1] == Approx(1.0f));
+}
+
 TEST_CASE("DelayLine flushes denormal-range feedback tails to hard zero") {
     DelayLine line;
     line.prepare(48000.0, 1.0f);
