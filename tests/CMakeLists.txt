@@ -5,7 +5,8 @@ FetchContent_Declare(Catch2
 FetchContent_MakeAvailable(Catch2)
 
 add_executable(orbit_tests
-    core/SanityTests.cpp)
+    core/SanityTests.cpp
+    core/DelayLineTests.cpp)
 
 target_link_libraries(orbit_tests PRIVATE
     orbit_core
