@@ -25,3 +25,15 @@ packaging/  Installers, signing, notarization
 
 The visual design is produced separately (Claude Design) and binds to the engine
 through the UI integration contract in the spec (§6).
+
+## Development
+
+```bash
+cmake -B build -DCMAKE_BUILD_TYPE=Debug   # first configure downloads JUCE (~minutes)
+cmake --build build --target orbit_tests -j8 && ./build/tests/orbit_tests   # unit tests
+cmake --build build --target OrbitDelay_VST3 OrbitDelay_AU OrbitDelay_Standalone -j8
+./scripts/run_pluginval.sh                # plugin validation (max strictness)
+auval -v aufx Orb1 Orba                   # Apple AU validation
+```
+
+Built plugins are auto-copied to `~/Library/Audio/Plug-Ins/` — rescan in your DAW to test.
