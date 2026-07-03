@@ -9,6 +9,8 @@ add_executable(orbit_tests
     core/DelayLineTests.cpp
     core/TempoSyncTests.cpp
     core/DuckerTests.cpp
+    core/OnePoleTests.cpp
+    core/LfoTests.cpp
     plugin/OrbitEngineTests.cpp
     ${CMAKE_SOURCE_DIR}/plugin/OrbitEngine.cpp)
 
