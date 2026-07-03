@@ -47,6 +47,10 @@ private:
     std::array<TapParamPointers, orbit::OrbitEngine::kNumTaps> tapParams_ {};
     std::atomic<float>* dryWetParam_ = nullptr;
     std::atomic<float>* duckParam_ = nullptr;
+    std::atomic<float>* modDepthParam_ = nullptr;
+    std::atomic<float>* modRateParam_ = nullptr;
+    std::atomic<float>* lowCutParam_ = nullptr;
+    std::atomic<float>* highCutParam_ = nullptr;
 
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(OrbitAudioProcessor)
 };

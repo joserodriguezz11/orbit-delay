@@ -1,6 +1,7 @@
 #include <catch2/catch_test_macros.hpp>
 #include <catch2/catch_approx.hpp>
 #include <cmath>
+#include <cstddef>
 #include <limits>
 #include <vector>
 #include "dsp/DelayLine.h"
@@ -92,4 +93,44 @@ TEST_CASE("DelayLine recovers from a NaN input sample") {
     for (int n = 0; n < 100; ++n)
         allFinite = allFinite && std::isfinite(line.processSample(0.0f));
     CHECK(allFinite);
+}
+
+TEST_CASE("DelayLine keeps sub-sample precision at large delays and high rates") {
+    DelayLine line;
+    line.prepare(192000.0, 4.0f);
+    line.setDelaySeconds(100000.5f / 192000.0f);
+    std::vector<float> out;
+    for (int n = 0; n < 100050; ++n)
+        out.push_back(line.processSample(n == 0 ? 1.0f : 0.0f));
+    CHECK(out[100000] == Approx(0.5f).margin(1e-3f));
+    CHECK(out[100001] == Approx(0.5f).margin(1e-3f));
+}
+
+TEST_CASE("DelayLine glides between delay times instead of jumping") {
+    DelayLine line;
+    line.prepare(48000.0, 1.0f);
+    line.setDelaySeconds(100.0f / 48000.0f);     // snaps: not running yet
+    for (int n = 0; n < 500; ++n)
+        line.processSample(0.0f);                 // now running
+    line.setDelaySeconds(200.0f / 48000.0f);     // must glide, not jump
+    const auto out = impulseResponse(line, 260);
+    float early = 0.0f, late = 0.0f;
+    for (int n = 0; n < 130; ++n)
+        early += std::abs(out[static_cast<size_t>(n)]);
+    for (int n = 190; n < 210; ++n)
+        late += std::abs(out[static_cast<size_t>(n)]);
+    CHECK(early > 0.5f);    // echo still lands near the old time right after the change
+    CHECK(late < 0.05f);    // and NOT at the new time yet — no instant jump
+}
+
+TEST_CASE("DelayLine modulation offset shifts the read position") {
+    DelayLine line;
+    line.prepare(48000.0, 1.0f);
+    line.setDelaySeconds(100.0f / 48000.0f);
+    line.setModulationSamples(10.0f);            // effective delay 110 samples
+    std::vector<float> out;
+    for (int n = 0; n < 150; ++n)
+        out.push_back(line.processSample(n == 0 ? 1.0f : 0.0f));
+    CHECK(out[110] == Approx(1.0f));
+    CHECK(std::abs(out[100]) < 1e-6f);
 }

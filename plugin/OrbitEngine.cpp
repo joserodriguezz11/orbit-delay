@@ -12,7 +12,13 @@ void OrbitEngine::prepare(double sampleRate, int maxBlockSize, int numChannels) 
         for (auto& line : tapLines)
             line.prepare(sampleRate, kMaxDelaySeconds);
     ducker_.prepare(sampleRate);
+    lfo_.prepare(sampleRate);
+    for (int ch = 0; ch < kMaxChannels; ++ch) {
+        lowCutFilters_[static_cast<size_t>(ch)].prepare(sampleRate, dsp::OnePole::Mode::HighPass);
+        highCutFilters_[static_cast<size_t>(ch)].prepare(sampleRate, dsp::OnePole::Mode::LowPass);
+    }
     applyTapTimes();
+    setDryWet(mix_);   // keep gains consistent with mix_ for default-constructed engines
 }
 
 void OrbitEngine::reset() {
@@ -20,6 +26,11 @@ void OrbitEngine::reset() {
         for (auto& line : tapLines)
             line.reset();
     ducker_.reset();
+    lfo_.reset();
+    for (int ch = 0; ch < kMaxChannels; ++ch) {
+        lowCutFilters_[static_cast<size_t>(ch)].reset();
+        highCutFilters_[static_cast<size_t>(ch)].reset();
+    }
 }
 
 void OrbitEngine::setTap(int index, const TapSettings& settings) {
@@ -31,9 +42,28 @@ void OrbitEngine::setTap(int index, const TapSettings& settings) {
     applyTapTime(index);
 }
 
-void OrbitEngine::setDryWet(float mix01) { mix_ = std::clamp(mix01, 0.0f, 1.0f); }
+void OrbitEngine::setDryWet(float mix01) {
+    mix_ = std::clamp(mix01, 0.0f, 1.0f);
+    dryGain_ = std::sqrt(1.0f - mix_);
+    wetGain_ = std::sqrt(mix_);
+}
 
 void OrbitEngine::setDuckAmount(float amount01) { ducker_.setAmount(amount01); }
+
+void OrbitEngine::setModulation(float depth01, float rateHz) {
+    const float depth = std::clamp(depth01, 0.0f, 1.0f);
+    modDepthSamples_ = depth * kMaxModSeconds * static_cast<float>(sampleRate_);
+    lfo_.setRate(rateHz);
+}
+
+void OrbitEngine::setFilters(float lowCutHz, float highCutHz) {
+    lowCutHz_ = lowCutHz;
+    highCutHz_ = highCutHz;
+    for (int ch = 0; ch < kMaxChannels; ++ch) {
+        lowCutFilters_[static_cast<size_t>(ch)].setCutoff(lowCutHz);
+        highCutFilters_[static_cast<size_t>(ch)].setCutoff(highCutHz);
+    }
+}
 
 void OrbitEngine::setBpm(double bpm) {
     if (bpm > 0.0 && bpm != bpm_) {
@@ -65,18 +95,25 @@ void OrbitEngine::process(float* const* channelData, int numChannels, int numSam
         dryLevel /= static_cast<float>(channels);
         const float duckGain = ducker_.processGain(dryLevel);
 
+        const float modOffset = lfo_.processSample() * modDepthSamples_;
+
         for (int ch = 0; ch < channels; ++ch) {
             const float dry = channelData[ch][n];
             float wet = 0.0f;
             for (int t = 0; t < kNumTaps; ++t) {
                 // Disabled taps keep processing (buffers stay warm -> no clicks
                 // on re-enable) but don't contribute to the mix.
-                const float tapOut =
-                    lines_[static_cast<size_t>(t)][static_cast<size_t>(ch)].processSample(dry);
+                auto& line = lines_[static_cast<size_t>(t)][static_cast<size_t>(ch)];
+                line.setModulationSamples(modOffset);
+                const float tapOut = line.processSample(dry);
                 if (taps_[static_cast<size_t>(t)].enabled)
                     wet += tapOut;
             }
-            channelData[ch][n] = dry * (1.0f - mix_) + wet * mix_ * duckGain;
+            if (lowCutHz_ > 0.0f)
+                wet = lowCutFilters_[static_cast<size_t>(ch)].processSample(wet);
+            if (highCutHz_ < 20000.0f)
+                wet = highCutFilters_[static_cast<size_t>(ch)].processSample(wet);
+            channelData[ch][n] = dry * dryGain_ + wet * wetGain_ * duckGain;
         }
     }
 }
