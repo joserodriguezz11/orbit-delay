@@ -1,11 +1,12 @@
 #include "Parameters.h"
+#include "OrbitEngine.h"
 
 namespace orbit::params {
 
 juce::AudioProcessorValueTreeState::ParameterLayout createLayout() {
     std::vector<std::unique_ptr<juce::RangedAudioParameter>> parameters;
 
-    for (int i = 0; i < 4; ++i) {
+    for (int i = 0; i < orbit::OrbitEngine::kNumTaps; ++i) {
         const auto n = juce::String(i + 1);
         parameters.push_back(std::make_unique<juce::AudioParameterBool>(
             juce::ParameterID(tapEnabledId(i), 1), "Tap " + n + " On", i == 0));

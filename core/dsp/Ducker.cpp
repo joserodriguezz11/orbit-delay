@@ -15,7 +15,9 @@ void Ducker::reset() { envelope_ = 0.0f; }
 void Ducker::setAmount(float amount) { amount_ = std::clamp(amount, 0.0f, 1.0f); }
 
 float Ducker::processGain(float sidechainLevel) {
-    const float level = std::abs(sidechainLevel);
+    float level = std::abs(sidechainLevel);
+    if (!std::isfinite(level))
+        level = 0.0f;
     const float coef = level > envelope_ ? attackCoef_ : releaseCoef_;
     envelope_ = coef * envelope_ + (1.0f - coef) * level;
     const float duck = std::min(envelope_, 1.0f) * amount_;

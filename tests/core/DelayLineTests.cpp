@@ -1,6 +1,7 @@
 #include <catch2/catch_test_macros.hpp>
 #include <catch2/catch_approx.hpp>
 #include <cmath>
+#include <limits>
 #include <vector>
 #include "dsp/DelayLine.h"
 
@@ -79,4 +80,16 @@ TEST_CASE("DelayLine flushes denormal-range feedback tails to hard zero") {
         out.push_back(line.processSample(n == 0 ? 1.0f : 0.0f));
     for (int n = 19000; n < 20000; ++n)
         REQUIRE(out[static_cast<size_t>(n)] == 0.0f);   // exactly zero, not denormal dust
+}
+
+TEST_CASE("DelayLine recovers from a NaN input sample") {
+    DelayLine line;
+    line.prepare(48000.0, 1.0f);
+    line.setDelaySeconds(10.0f / 48000.0f);
+    line.setFeedback(0.5f);
+    line.processSample(std::numeric_limits<float>::quiet_NaN());
+    bool allFinite = true;
+    for (int n = 0; n < 100; ++n)
+        allFinite = allFinite && std::isfinite(line.processSample(0.0f));
+    CHECK(allFinite);
 }

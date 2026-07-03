@@ -1,5 +1,6 @@
 #include <catch2/catch_test_macros.hpp>
 #include <catch2/catch_approx.hpp>
+#include <limits>
 #include "dsp/Ducker.h"
 
 using Catch::Approx;
@@ -33,6 +34,17 @@ TEST_CASE("Ducker recovers toward 1.0 after the input goes silent") {
         d.processGain(1.0f);
     float gain = 0.0f;
     for (int n = 0; n < 48000; ++n)  // 1 s of silence
+        gain = d.processGain(0.0f);
+    CHECK(gain > 0.9f);
+}
+
+TEST_CASE("Ducker recovers from a NaN sidechain sample") {
+    Ducker d;
+    d.prepare(48000.0);
+    d.setAmount(1.0f);
+    d.processGain(std::numeric_limits<float>::quiet_NaN());
+    float gain = 0.0f;
+    for (int n = 0; n < 48000; ++n)
         gain = d.processGain(0.0f);
     CHECK(gain > 0.9f);
 }

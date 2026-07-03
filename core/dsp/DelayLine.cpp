@@ -42,8 +42,9 @@ float DelayLine::readFractional() const {
 float DelayLine::processSample(float input) {
     const float out = readFractional();
     float next = input + out * feedback_;
-    // Flush denormal-range values to hard zero so feedback tails die cleanly.
-    if (std::abs(next) < 1.0e-12f)
+    // Flush denormal-range and non-finite values to hard zero so feedback
+    // tails die cleanly and a bad input sample can't poison the line.
+    if (!std::isfinite(next) || std::abs(next) < 1.0e-12f)
         next = 0.0f;
     buffer_[writePos_] = next;
     writePos_ = (writePos_ + 1) % buffer_.size();

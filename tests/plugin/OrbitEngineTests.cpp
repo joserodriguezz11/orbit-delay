@@ -1,7 +1,9 @@
 #include <catch2/catch_test_macros.hpp>
 #include <catch2/catch_approx.hpp>
+#include <algorithm>
 #include <array>
 #include <cmath>
+#include <memory>
 #include <vector>
 #include "OrbitEngine.h"
 
