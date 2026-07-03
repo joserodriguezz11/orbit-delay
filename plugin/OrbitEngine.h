@@ -2,6 +2,8 @@
 #include <array>
 #include "dsp/DelayLine.h"
 #include "dsp/Ducker.h"
+#include "dsp/Lfo.h"
+#include "dsp/OnePole.h"
 #include "dsp/TempoSync.h"
 
 namespace orbit {
@@ -20,6 +22,7 @@ public:
     static constexpr int kNumTaps = 4;
     static constexpr int kMaxChannels = 2;
     static constexpr float kMaxDelaySeconds = 4.0f;
+    static constexpr float kMaxModSeconds = 0.002f;
 
     void prepare(double sampleRate, int maxBlockSize, int numChannels);
     void reset();
@@ -28,6 +31,8 @@ public:
     void setDryWet(float mix01);
     void setDuckAmount(float amount01);
     void setBpm(double bpm);
+    void setModulation(float depth01, float rateHz);  // depth 0..1 -> up to +/-2 ms
+    void setFilters(float lowCutHz, float highCutHz); // lowCut <= 0 off; highCut >= 20000 off
 
     // In-place processing. channelData must have >= numChannels pointers.
     void process(float* const* channelData, int numChannels, int numSamples);
@@ -39,6 +44,14 @@ private:
     std::array<std::array<dsp::DelayLine, kMaxChannels>, kNumTaps> lines_;
     std::array<TapSettings, kNumTaps> taps_;
     dsp::Ducker ducker_;
+    dsp::Lfo lfo_;
+    float modDepthSamples_ = 0.0f;
+    float lowCutHz_ = 0.0f;
+    float highCutHz_ = 20000.0f;
+    std::array<dsp::OnePole, kMaxChannels> lowCutFilters_;
+    std::array<dsp::OnePole, kMaxChannels> highCutFilters_;
+    float dryGain_ = 1.0f;
+    float wetGain_ = 0.0f;
     float mix_ = 0.3f;
     double bpm_ = 120.0;
     double sampleRate_ = 44100.0;
