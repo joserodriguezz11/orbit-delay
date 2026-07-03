@@ -18,6 +18,7 @@ void OrbitEngine::prepare(double sampleRate, int maxBlockSize, int numChannels) 
         highCutFilters_[static_cast<size_t>(ch)].prepare(sampleRate, dsp::OnePole::Mode::LowPass);
     }
     applyTapTimes();
+    setDryWet(mix_);   // keep gains consistent with mix_ for default-constructed engines
 }
 
 void OrbitEngine::reset() {

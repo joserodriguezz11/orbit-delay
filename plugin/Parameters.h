@@ -11,6 +11,11 @@ inline juce::String tapFeedbackId(int tapIndex) { return "tap" + juce::String(ta
 inline constexpr auto kDryWetId = "mix_drywet";
 inline constexpr auto kDuckId   = "mix_duck";
 
+inline constexpr auto kModDepthId = "mod_depth";
+inline constexpr auto kModRateId  = "mod_rate";
+inline constexpr auto kLowCutId   = "filter_lowcut";
+inline constexpr auto kHighCutId  = "filter_highcut";
+
 // Index order MUST match orbit::dsp::SyncDivision (core/dsp/TempoSync.h).
 inline const juce::StringArray kSyncChoices {
     "Free", "1/1", "1/2", "1/4", "1/8", "1/16",

@@ -15,6 +15,10 @@ OrbitAudioProcessor::OrbitAudioProcessor()
     }
     dryWetParam_ = apvts.getRawParameterValue(params::kDryWetId);
     duckParam_   = apvts.getRawParameterValue(params::kDuckId);
+    modDepthParam_ = apvts.getRawParameterValue(params::kModDepthId);
+    modRateParam_  = apvts.getRawParameterValue(params::kModRateId);
+    lowCutParam_   = apvts.getRawParameterValue(params::kLowCutId);
+    highCutParam_  = apvts.getRawParameterValue(params::kHighCutId);
 }
 
 void OrbitAudioProcessor::prepareToPlay(double sampleRate, int samplesPerBlock) {
@@ -41,6 +45,8 @@ void OrbitAudioProcessor::updateEngineFromParameters() {
     }
     engine_.setDryWet(dryWetParam_->load());
     engine_.setDuckAmount(duckParam_->load());
+    engine_.setModulation(modDepthParam_->load(), modRateParam_->load());
+    engine_.setFilters(lowCutParam_->load(), highCutParam_->load());
 }
 
 void OrbitAudioProcessor::processBlock(juce::AudioBuffer<float>& buffer, juce::MidiBuffer&) {
@@ -71,6 +77,10 @@ void OrbitAudioProcessor::setStateInformation(const void* data, int sizeInBytes)
         return;
     if (tree.hasProperty("product") && tree.getProperty("product").toString() != "orbit")
         return;   // refuse state from a different family product
+    // Migration switch point: v1 is current. When stateVersion 2 exists,
+    // transform older trees here before replaceState.
+    const int loadedVersion = static_cast<int>(tree.getProperty("stateVersion", 1));
+    juce::ignoreUnused(loadedVersion);
     apvts.replaceState(tree);
 }
 
