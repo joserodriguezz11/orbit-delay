@@ -19,7 +19,7 @@
 - **New parameter IDs (exact):** `mod_depth`, `mod_rate`, `filter_lowcut`, `filter_highcut`. Existing 18 IDs unchanged.
 - **Backward compatibility:** every existing test keeps passing unchanged (snap-before-running glide semantics make this possible); v1 session state loads with new params at defaults; `stateVersion` stays `1` (additive change only).
 - **Glide time constant:** 50 ms (`DelayLine::kDefaultGlideSeconds = 0.05f`). **Max modulation depth:** ±2 ms (`OrbitEngine::kMaxModSeconds = 0.002f`).
-- **Neutral defaults:** `mod_depth` 0, `filter_lowcut` 0 (off), `filter_highcut` 20000 (off) — a default-state plugin sounds identical to Phase 1.
+- **Neutral defaults:** `mod_depth` 0, `filter_lowcut` 0 (off), `filter_highcut` 20000 (off) — the new features are silent by default. **Known intentional sonic change:** dry/wet is now equal-power, so intermediate mix values (0 < mix < 1) are louder/wetter than Phase 1's linear mix (default 0.3 mix: wet +5.2 dB, dry +1.6 dB). Accepted at final review 2026-07-03 — no released sessions existed. Mix 0.0 and 1.0 are bit-identical to Phase 1.
 - Work in `/Users/joserodriguez/orbit-delay` on branch `dev/phase-2-wave-1`. Conventional commits. Do not push until delivery.
 
 ---
