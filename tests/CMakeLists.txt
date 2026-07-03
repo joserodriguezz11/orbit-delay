@@ -11,6 +11,7 @@ add_executable(orbit_tests
     core/DuckerTests.cpp
     core/OnePoleTests.cpp
     core/LfoTests.cpp
+    core/CharacterStageTests.cpp
     plugin/OrbitEngineTests.cpp
     ${CMAKE_SOURCE_DIR}/plugin/OrbitEngine.cpp)
 
