@@ -174,6 +174,27 @@ TEST_CASE("motion depth changes the wet output, zero depth does not") {
     CHECK(diffMod > 1.0);
 }
 
+TEST_CASE("motion on a very short tap stays finite and does not flat-top hard") {
+    OrbitEngine engine;
+    engine.prepare(48000.0, 512, 2);
+    TapSettings tap;
+    tap.enabled = true;
+    tap.sync = dsp::SyncDivision::Free;
+    tap.timeSeconds = 0.001f;               // 48 samples < max mod (96 samples)
+    tap.feedback = 0.5f;
+    engine.setTap(0, tap);
+    engine.setDryWet(1.0f);
+    engine.setDuckAmount(0.0f);
+    engine.setModulation(1.0f, 8.0f);
+    StereoBuffer buf(48000);
+    for (int n = 0; n < 48000; ++n)
+        buf.left[static_cast<size_t>(n)] = buf.right[static_cast<size_t>(n)] =
+            std::sin(2.0f * 3.14159265f * 220.0f * static_cast<float>(n) / 48000.0f);
+    engine.process(buf.channels.data(), 2, 48000);
+    for (int n = 0; n < 48000; ++n)
+        REQUIRE(std::isfinite(buf.left[static_cast<size_t>(n)]));
+}
+
 TEST_CASE("low-cut filter drains a sustained wet signal") {
     auto tailEnergy = [](float lowCutHz) {
         OrbitEngine engine;

@@ -1,5 +1,6 @@
 #pragma once
 #include <juce_audio_processors/juce_audio_processors.h>
+#include "dsp/TempoSync.h"
 
 namespace orbit::params {
 
@@ -16,11 +17,14 @@ inline constexpr auto kModRateId  = "mod_rate";
 inline constexpr auto kLowCutId   = "filter_lowcut";
 inline constexpr auto kHighCutId  = "filter_highcut";
 
-// Index order MUST match orbit::dsp::SyncDivision (core/dsp/TempoSync.h).
-inline const juce::StringArray kSyncChoices {
-    "Free", "1/1", "1/2", "1/4", "1/8", "1/16",
-    "1/4 D", "1/8 D", "1/4 T", "1/8 T"
-};
+// Built from orbit::dsp::kSyncDivisionNames so the index order matches
+// orbit::dsp::SyncDivision by construction (static_assert in TempoSync.h).
+inline const juce::StringArray kSyncChoices = [] {
+    juce::StringArray choices;
+    for (auto* name : orbit::dsp::kSyncDivisionNames)
+        choices.add(name);
+    return choices;
+}();
 
 juce::AudioProcessorValueTreeState::ParameterLayout createLayout();
 

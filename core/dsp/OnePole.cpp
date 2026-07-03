@@ -20,6 +20,8 @@ void OnePole::setCutoff(float hz) {
 
 float OnePole::processSample(float input) {
     state_ += coef_ * (input - state_);
+    if (!(std::abs(state_) >= 1.0e-12f))   // denormal/NaN flush, matches DelayLine policy
+        state_ = 0.0f;
     return mode_ == Mode::LowPass ? state_ : input - state_;
 }
 

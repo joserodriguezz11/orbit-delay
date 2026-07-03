@@ -43,6 +43,9 @@ private:
 
     std::array<std::array<dsp::DelayLine, kMaxChannels>, kNumTaps> lines_;
     std::array<TapSettings, kNumTaps> taps_;
+    // Per-tap Motion headroom: scales LFO depth so short taps get
+    // proportionally less modulation instead of clamp flat-topping.
+    std::array<float, kNumTaps> modScale_ {};
     dsp::Ducker ducker_;
     dsp::Lfo lfo_;
     float modDepthSamples_ = 0.0f;

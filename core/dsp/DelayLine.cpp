@@ -44,6 +44,10 @@ void DelayLine::setModulationSamples(float samples) {
 float DelayLine::readFractional() const {
     const std::size_t size = buffer_.size();
     const double maxDelay = static_cast<double>(size - 2);
+    // INVARIANT (do not weaken): effective is clamped to [1, size-2] so that
+    // `newer` trails the write head by >= 1 sample and `older` = newer-1 stays
+    // in valid history given the +2 headroom allocated in prepare(). All read
+    // modes added later must preserve this bound.
     const double effective = std::clamp(
         currentDelaySamples_ + static_cast<double>(modSamples_), 1.0, maxDelay);
     const auto intDelay = static_cast<std::size_t>(effective);

@@ -26,6 +26,17 @@ TEST_CASE("OnePole high-pass rejects DC") {
     CHECK(std::abs(y) < 0.01f);
 }
 
+TEST_CASE("OnePole decays to hard zero, not denormals") {
+    OnePole f;
+    f.prepare(48000.0, OnePole::Mode::LowPass);
+    f.setCutoff(100.0f);
+    f.processSample(1.0f);
+    float y = 1.0f;
+    for (int n = 0; n < 480000; ++n)
+        y = f.processSample(0.0f);
+    CHECK(y == 0.0f);   // exactly zero after long silence
+}
+
 TEST_CASE("OnePole low-pass attenuates Nyquist-rate alternation") {
     OnePole f;
     f.prepare(48000.0, OnePole::Mode::LowPass);

@@ -1,14 +1,11 @@
 #include "Parameters.h"
 #include "OrbitEngine.h"
-#include "dsp/TempoSync.h"
 
 namespace orbit::params {
 
 juce::AudioProcessorValueTreeState::ParameterLayout createLayout() {
-    // Enum-order contract: the sync choice list must track SyncDivision exactly.
-    jassert(kSyncChoices.size()
-            == static_cast<int>(orbit::dsp::SyncDivision::NumDivisions));
-
+    // Enum-order contract: kSyncChoices is built from kSyncDivisionNames and
+    // enforced at compile time by the static_assert in core/dsp/TempoSync.h.
     std::vector<std::unique_ptr<juce::RangedAudioParameter>> parameters;
 
     for (int i = 0; i < orbit::OrbitEngine::kNumTaps; ++i) {
