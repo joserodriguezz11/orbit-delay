@@ -127,7 +127,13 @@ bool VizFeed::popEvent(TapFireEvent& out) {
 
 void VizFeed::writeLevels(const LevelSnapshot& s) {
     const auto v = version_.load(std::memory_order_relaxed);
-    version_.store(v + 1, std::memory_order_release);  // odd: write in progress
+    // Odd = write in progress. Relaxed store + release FENCE (not a release
+    // store): a release store only orders PRIOR accesses before it — the
+    // field stores below could otherwise become visible before the odd
+    // version on weakly-ordered hardware (ARM), letting a reader return a
+    // torn snapshot. (Amended after Task 1 review; canonical seqlock entry.)
+    version_.store(v + 1, std::memory_order_relaxed);
+    std::atomic_thread_fence(std::memory_order_release);
     inRms_.store(s.inRms, std::memory_order_relaxed);
     inPeak_.store(s.inPeak, std::memory_order_relaxed);
     outRms_.store(s.outRms, std::memory_order_relaxed);
