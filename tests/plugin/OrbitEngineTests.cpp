@@ -231,3 +231,55 @@ TEST_CASE("equal-power mix keeps full-wet and full-dry exact") {
     engine.process(buf.channels.data(), 2, 64);
     CHECK(buf.left[10] == Approx(0.75f));
 }
+
+// Ping-pong trace justifying the expectations below: impulse L at n=0 -> both
+// lines get their channel's dry; the L line holds the impulse. Echo 1 (n=100):
+// outL=1, outR=0 -> heard LEFT; the cross-write puts fb*outL into the R line.
+// Echo 2 (n=200): outR=0.7 -> RIGHT. Echo 3 (n=300): back LEFT at 0.49.
+TEST_CASE("ping-pong bounces the echo between channels") {
+    OrbitEngine engine;
+    engine.prepare(48000.0, 512, 2);
+    TapSettings tap;
+    tap.enabled = true;
+    tap.sync = dsp::SyncDivision::Free;
+    tap.timeSeconds = 100.0f / 48000.0f;
+    tap.feedback = 0.7f;
+    engine.setTap(0, tap);
+    engine.setDryWet(1.0f);
+    engine.setDuckAmount(0.0f);
+    engine.setPingPong(true);
+    StereoBuffer buf(350);
+    buf.left[0] = 1.0f;                       // impulse on LEFT only
+    engine.process(buf.channels.data(), 2, 350);
+    CHECK(buf.right[100] == Approx(0.0f).margin(1e-4f));   // 1st echo: left
+    CHECK(buf.left[100] == Approx(1.0f).margin(1e-2f));
+    CHECK(std::abs(buf.right[200]) > 0.5f);                 // 2nd echo: crossed to right
+    CHECK(std::abs(buf.left[200]) < 1e-3f);
+    CHECK(std::abs(buf.left[300]) > 0.3f);                  // 3rd echo: back to left
+}
+
+TEST_CASE("width narrows or spreads the wet stereo image") {
+    auto sideEnergy = [](float width) {
+        OrbitEngine engine;
+        engine.prepare(48000.0, 512, 2);
+        TapSettings tap;
+        tap.enabled = true;
+        tap.sync = dsp::SyncDivision::Free;
+        tap.timeSeconds = 50.0f / 48000.0f;
+        tap.feedback = 0.0f;
+        engine.setTap(0, tap);
+        engine.setDryWet(1.0f);
+        engine.setDuckAmount(0.0f);
+        engine.setWidth(width);
+        StereoBuffer buf(200);
+        buf.left[0] = 1.0f;                   // left-only impulse -> wet has side content
+        engine.process(buf.channels.data(), 2, 200);
+        double side = 0.0;
+        for (int n = 0; n < 200; ++n)
+            side += std::abs(buf.left[static_cast<size_t>(n)] - buf.right[static_cast<size_t>(n)]);
+        return side;
+    };
+    const auto normal = sideEnergy(1.0f);
+    CHECK(sideEnergy(0.0f) == Approx(0.0).margin(1e-6));    // mono-ized wet
+    CHECK(sideEnergy(2.0f) > 1.5 * normal);                  // spread
+}

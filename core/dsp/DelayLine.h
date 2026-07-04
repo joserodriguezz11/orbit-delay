@@ -21,9 +21,24 @@ public:
     void setFeedback(float amount);             // clamped to [0, kMaxFeedback]
     void setModulationSamples(float samples);   // additive read offset, unsmoothed (LFO path)
 
+    // Split per-sample API (for cross-feedback topologies: read all lines
+    // first, then write). Per sample, call read() at most once before exactly
+    // one writeAndAdvance().
+    //   read()            — delayed sample at the current effective position
+    //                       (glide + modulation applied); does NOT advance.
+    //   writeAndAdvance() — owns the per-sample state update: flushes NaN/
+    //                       denormals, writes the value, advances the write
+    //                       head AND the glide state, and sets running.
+    // Note: the caller applies feedback itself (value = input + out * fb).
+    float read() const;
+    void writeAndAdvance(float value);
+
     // Reads the delayed sample, writes input + feedback, advances.
-    // Call exactly once per sample.
+    // Call exactly once per sample. Exactly equivalent to
+    // { out = read(); writeAndAdvance(input + out * feedback()); }.
     float processSample(float input);
+
+    float feedback() const { return feedback_; }
 
 private:
     float readFractional() const;

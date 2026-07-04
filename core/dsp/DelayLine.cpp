@@ -57,18 +57,27 @@ float DelayLine::readFractional() const {
     return buffer_[newer] * (1.0f - frac) + buffer_[older] * frac;
 }
 
-float DelayLine::processSample(float input) {
+float DelayLine::read() const {
+    return readFractional();
+}
+
+void DelayLine::writeAndAdvance(float value) {
     running_ = true;
+    // Glide advances here (after the read) — one-sample phase shift in glide
+    // trajectories vs. the pre-split code; constant-target output is identical.
     currentDelaySamples_ =
         targetDelaySamples_ + (currentDelaySamples_ - targetDelaySamples_) * glideCoef_;
-    const float out = readFractional();
-    float next = input + out * feedback_;
     // Flush denormal-range and non-finite values to hard zero so feedback
     // tails die cleanly and a bad input sample can't poison the line.
-    if (!std::isfinite(next) || std::abs(next) < 1.0e-12f)
-        next = 0.0f;
-    buffer_[writePos_] = next;
+    if (!std::isfinite(value) || std::abs(value) < 1.0e-12f)
+        value = 0.0f;
+    buffer_[writePos_] = value;
     writePos_ = (writePos_ + 1) % buffer_.size();
+}
+
+float DelayLine::processSample(float input) {
+    const float out = read();
+    writeAndAdvance(input + out * feedback_);
     return out;
 }
 

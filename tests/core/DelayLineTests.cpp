@@ -134,3 +134,19 @@ TEST_CASE("DelayLine modulation offset shifts the read position") {
     CHECK(out[110] == Approx(1.0f));
     CHECK(std::abs(out[100]) < 1e-6f);
 }
+
+TEST_CASE("read/writeAndAdvance compose to processSample behavior") {
+    DelayLine a, b;
+    a.prepare(48000.0, 1.0f);
+    b.prepare(48000.0, 1.0f);
+    a.setDelaySeconds(10.0f / 48000.0f);
+    b.setDelaySeconds(10.0f / 48000.0f);
+    a.setFeedback(0.5f);
+    for (int n = 0; n < 60; ++n) {
+        const float x = (n == 0) ? 1.0f : 0.0f;
+        const float viaProcess = a.processSample(x);
+        const float out = b.read();
+        b.writeAndAdvance(x + out * 0.5f);
+        REQUIRE(viaProcess == out);
+    }
+}

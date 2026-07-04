@@ -33,6 +33,8 @@ public:
     void setBpm(double bpm);
     void setModulation(float depth01, float rateHz);  // depth 0..1 -> up to +/-2 ms
     void setFilters(float lowCutHz, float highCutHz); // lowCut <= 0 off; highCut >= 20000 off
+    void setPingPong(bool enabled);                   // stereo only: feedback crosses channels
+    void setWidth(float width01to2);                  // wet mid/side width: 0 mono, 1 pass, 2 wide
 
     // In-place processing. channelData must have >= numChannels pointers.
     void process(float* const* channelData, int numChannels, int numSamples);
@@ -56,6 +58,8 @@ private:
     float dryGain_ = 1.0f;
     float wetGain_ = 0.0f;
     float mix_ = 0.3f;
+    bool pingPong_ = false;
+    float width_ = 1.0f;
     double bpm_ = 120.0;
     double sampleRate_ = 44100.0;
     int numChannels_ = kMaxChannels;

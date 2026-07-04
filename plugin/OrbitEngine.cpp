@@ -50,6 +50,12 @@ void OrbitEngine::setDryWet(float mix01) {
 
 void OrbitEngine::setDuckAmount(float amount01) { ducker_.setAmount(amount01); }
 
+void OrbitEngine::setPingPong(bool enabled) { pingPong_ = enabled; }
+
+void OrbitEngine::setWidth(float width01to2) {
+    width_ = std::clamp(width01to2, 0.0f, 2.0f);
+}
+
 void OrbitEngine::setModulation(float depth01, float rateHz) {
     const float depth = std::clamp(depth01, 0.0f, 1.0f);
     modDepthSamples_ = depth * kMaxModSeconds * static_cast<float>(sampleRate_);
@@ -112,24 +118,55 @@ void OrbitEngine::process(float* const* channelData, int numChannels, int numSam
 
         const float modOffset = lfo_.processSample() * modDepthSamples_;
 
-        for (int ch = 0; ch < channels; ++ch) {
-            const float dry = channelData[ch][n];
-            float wet = 0.0f;
-            for (int t = 0; t < kNumTaps; ++t) {
-                // Disabled taps keep processing (buffers stay warm -> no clicks
-                // on re-enable) but don't contribute to the mix.
-                auto& line = lines_[static_cast<size_t>(t)][static_cast<size_t>(ch)];
+        const bool cross = pingPong_ && channels >= 2;   // ping-pong is stereo only
+        float dry[kMaxChannels] {};
+        float wet[kMaxChannels] {};
+        for (int ch = 0; ch < channels; ++ch)
+            dry[ch] = channelData[ch][n];
+
+        for (int t = 0; t < kNumTaps; ++t) {
+            auto& tapLines = lines_[static_cast<size_t>(t)];
+            // Read every channel of this tap BEFORE any write so feedback can
+            // cross channels (ping-pong) without consuming this sample's write.
+            float outs[kMaxChannels] {};
+            for (int ch = 0; ch < channels; ++ch) {
+                auto& line = tapLines[static_cast<size_t>(ch)];
                 line.setModulationSamples(modOffset * modScale_[static_cast<size_t>(t)]);
-                const float tapOut = line.processSample(dry);
-                if (taps_[static_cast<size_t>(t)].enabled)
-                    wet += tapOut;
+                outs[ch] = line.read();
             }
-            if (lowCutHz_ > 0.0f)
-                wet = lowCutFilters_[static_cast<size_t>(ch)].processSample(wet);
-            if (highCutHz_ < 20000.0f)
-                wet = highCutFilters_[static_cast<size_t>(ch)].processSample(wet);
-            channelData[ch][n] = dry * dryGain_ + wet * wetGain_ * duckGain;
+            for (int ch = 0; ch < channels; ++ch) {
+                auto& line = tapLines[static_cast<size_t>(ch)];
+                // Ping-pong: each channel feeds back the OTHER channel's output
+                // so the echo bounces L -> R -> L. Off (or mono): own output —
+                // identical topology to the pre-split processSample path.
+                const float fbSource = cross ? outs[1 - ch] : outs[ch];
+                line.writeAndAdvance(dry[ch] + fbSource * line.feedback());
+            }
+            // Disabled taps keep processing (buffers stay warm -> no clicks
+            // on re-enable) but don't contribute to the mix.
+            if (taps_[static_cast<size_t>(t)].enabled)
+                for (int ch = 0; ch < channels; ++ch)
+                    wet[ch] += outs[ch];
         }
+
+        for (int ch = 0; ch < channels; ++ch) {
+            if (lowCutHz_ > 0.0f)
+                wet[ch] = lowCutFilters_[static_cast<size_t>(ch)].processSample(wet[ch]);
+            if (highCutHz_ < 20000.0f)
+                wet[ch] = highCutFilters_[static_cast<size_t>(ch)].processSample(wet[ch]);
+        }
+
+        // Stereo width on the wet pair (mid/side). Width 1 is a bit-exact
+        // passthrough, so it is skipped entirely; mono is left untouched.
+        if (channels >= 2 && width_ != 1.0f) {
+            const float mid = (wet[0] + wet[1]) * 0.5f;
+            const float side = (wet[0] - wet[1]) * 0.5f * width_;
+            wet[0] = mid + side;
+            wet[1] = mid - side;
+        }
+
+        for (int ch = 0; ch < channels; ++ch)
+            channelData[ch][n] = dry[ch] * dryGain_ + wet[ch] * wetGain_ * duckGain;
     }
 }
 
