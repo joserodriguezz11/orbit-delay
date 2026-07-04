@@ -1,5 +1,6 @@
 #pragma once
 #include <array>
+#include "dsp/CharacterStage.h"
 #include "dsp/DelayLine.h"
 #include "dsp/Ducker.h"
 #include "dsp/Lfo.h"
@@ -38,6 +39,7 @@ public:
     void setPingPong(bool enabled);                   // stereo only: feedback crosses channels
     void setWidth(float width01to2);                  // wet mid/side width: 0 mono, 1 pass, 2 wide
     void setFreeze(bool enabled);                     // recirculate lines at unity; input stops entering
+    void setCharacterMode(dsp::CharacterStage::Mode mode); // wet coloring; Clean is true bypass
 
     // In-place processing. channelData must have >= numChannels pointers.
     void process(float* const* channelData, int numChannels, int numSamples);
@@ -56,6 +58,7 @@ private:
     float modDepthSamples_ = 0.0f;
     float lowCutHz_ = 0.0f;
     float highCutHz_ = 20000.0f;
+    std::array<dsp::CharacterStage, kMaxChannels> characterStages_;
     std::array<dsp::OnePole, kMaxChannels> lowCutFilters_;
     std::array<dsp::OnePole, kMaxChannels> highCutFilters_;
     float dryGain_ = 1.0f;

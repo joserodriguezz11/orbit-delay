@@ -14,6 +14,8 @@ void OrbitEngine::prepare(double sampleRate, int maxBlockSize, int numChannels) 
     ducker_.prepare(sampleRate);
     lfo_.prepare(sampleRate);
     for (int ch = 0; ch < kMaxChannels; ++ch) {
+        characterStages_[static_cast<size_t>(ch)].prepare(sampleRate);
+        characterStages_[static_cast<size_t>(ch)].reset();
         lowCutFilters_[static_cast<size_t>(ch)].prepare(sampleRate, dsp::OnePole::Mode::HighPass);
         highCutFilters_[static_cast<size_t>(ch)].prepare(sampleRate, dsp::OnePole::Mode::LowPass);
     }
@@ -28,6 +30,7 @@ void OrbitEngine::reset() {
     ducker_.reset();
     lfo_.reset();
     for (int ch = 0; ch < kMaxChannels; ++ch) {
+        characterStages_[static_cast<size_t>(ch)].reset();
         lowCutFilters_[static_cast<size_t>(ch)].reset();
         highCutFilters_[static_cast<size_t>(ch)].reset();
     }
@@ -61,6 +64,11 @@ void OrbitEngine::setWidth(float width01to2) {
 }
 
 void OrbitEngine::setFreeze(bool enabled) { frozen_ = enabled; }
+
+void OrbitEngine::setCharacterMode(dsp::CharacterStage::Mode mode) {
+    for (auto& stage : characterStages_)
+        stage.setMode(mode);
+}
 
 void OrbitEngine::setModulation(float depth01, float rateHz) {
     const float depth = std::clamp(depth01, 0.0f, 1.0f);
@@ -163,6 +171,10 @@ void OrbitEngine::process(float* const* channelData, int numChannels, int numSam
         }
 
         for (int ch = 0; ch < channels; ++ch) {
+            // Wet chain order (binding): tap sum -> character -> filters ->
+            // width -> duck x wetGain. Clean mode is a true bypass, so the
+            // default output stays bit-identical.
+            wet[ch] = characterStages_[static_cast<size_t>(ch)].processSample(wet[ch]);
             if (lowCutHz_ > 0.0f)
                 wet[ch] = lowCutFilters_[static_cast<size_t>(ch)].processSample(wet[ch]);
             if (highCutHz_ < 20000.0f)

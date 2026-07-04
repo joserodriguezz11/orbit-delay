@@ -1,5 +1,6 @@
 #pragma once
 
+#include <cstddef>
 #include <cstdint>
 #include "dsp/OnePole.h"
 
@@ -34,5 +35,12 @@ private:
     std::uint32_t rngState_ = kNoiseSeed;
     static constexpr std::uint32_t kNoiseSeed = 0x9E3779B9u;
 };
+
+// UI-facing names for the character_mode parameter choice list. The
+// static_assert makes the enum<->choice-list contract compile-time.
+inline constexpr const char* kCharacterModeNames[] = { "Clean", "Tape", "Grit" };
+static_assert(sizeof(kCharacterModeNames) / sizeof(kCharacterModeNames[0])
+                  == static_cast<std::size_t>(CharacterStage::Mode::NumModes),
+              "kCharacterModeNames must track CharacterStage::Mode exactly");
 
 } // namespace orbit::dsp

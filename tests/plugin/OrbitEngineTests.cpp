@@ -309,6 +309,53 @@ TEST_CASE("per-tap reverse and pitch flow through TapSettings") {
     CHECK(descending > counted * 9 / 10);
 }
 
+TEST_CASE("character stage colors the wet path between tap sum and filters") {
+    // Hot sine so Tape's tanh saturation actually bites; feedback 0 and full
+    // wet so the output is exactly the (colored) 100-sample echo of the input.
+    auto renderWet = [](dsp::CharacterStage::Mode mode, bool callSetMode) {
+        OrbitEngine engine;
+        engine.prepare(48000.0, 512, 2);
+        TapSettings tap;
+        tap.enabled = true;
+        tap.sync = dsp::SyncDivision::Free;
+        tap.timeSeconds = 100.0f / 48000.0f;
+        tap.feedback = 0.0f;
+        engine.setTap(0, tap);
+        engine.setDryWet(1.0f);
+        engine.setDuckAmount(0.0f);
+        if (callSetMode)
+            engine.setCharacterMode(mode);
+        StereoBuffer buf(600);
+        for (int n = 0; n < 600; ++n)
+            buf.left[static_cast<size_t>(n)] = buf.right[static_cast<size_t>(n)] =
+                0.9f * std::sin(2.0f * 3.14159265f * 1000.0f * static_cast<float>(n) / 48000.0f);
+        engine.process(buf.channels.data(), 2, 600);
+        return buf.left;
+    };
+
+    const auto untouched = renderWet(dsp::CharacterStage::Mode::Clean, false);
+    const auto clean = renderWet(dsp::CharacterStage::Mode::Clean, true);
+    const auto tape = renderWet(dsp::CharacterStage::Mode::Tape, true);
+
+    // Clean is the default and a true bypass: bit-identical to an engine that
+    // never called setCharacterMode, and the echo is the input delayed by
+    // exactly 100 samples (nothing colored it).
+    for (int n = 0; n < 600; ++n)
+        REQUIRE(clean[static_cast<size_t>(n)] == untouched[static_cast<size_t>(n)]);
+    for (int n = 100; n < 600; ++n) {
+        const float expected =
+            0.9f * std::sin(2.0f * 3.14159265f * 1000.0f * static_cast<float>(n - 100) / 48000.0f);
+        REQUIRE(clean[static_cast<size_t>(n)] == Approx(expected).margin(1e-5f));
+    }
+
+    // Tape colors the wet path: same input, audibly different echo.
+    float maxDiff = 0.0f;
+    for (int n = 100; n < 600; ++n)
+        maxDiff = std::max(maxDiff,
+                           std::abs(tape[static_cast<size_t>(n)] - clean[static_cast<size_t>(n)]));
+    CHECK(maxDiff > 0.01f);
+}
+
 TEST_CASE("freeze loops the captured audio indefinitely and ignores new input") {
     auto renderFrozen = [](float postFreezeInput) {
         OrbitEngine engine;

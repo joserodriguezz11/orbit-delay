@@ -12,13 +12,19 @@ OrbitAudioProcessor::OrbitAudioProcessor()
         tapParams_[static_cast<size_t>(i)].time     = apvts.getRawParameterValue(params::tapTimeId(i));
         tapParams_[static_cast<size_t>(i)].sync     = apvts.getRawParameterValue(params::tapSyncId(i));
         tapParams_[static_cast<size_t>(i)].feedback = apvts.getRawParameterValue(params::tapFeedbackId(i));
+        tapParams_[static_cast<size_t>(i)].reverse  = apvts.getRawParameterValue(params::tapReverseId(i));
+        tapParams_[static_cast<size_t>(i)].pitch    = apvts.getRawParameterValue(params::tapPitchId(i));
     }
     dryWetParam_ = apvts.getRawParameterValue(params::kDryWetId);
     duckParam_   = apvts.getRawParameterValue(params::kDuckId);
+    widthParam_    = apvts.getRawParameterValue(params::kWidthId);
+    pingPongParam_ = apvts.getRawParameterValue(params::kPingPongId);
+    characterModeParam_ = apvts.getRawParameterValue(params::kCharacterModeId);
     modDepthParam_ = apvts.getRawParameterValue(params::kModDepthId);
     modRateParam_  = apvts.getRawParameterValue(params::kModRateId);
     lowCutParam_   = apvts.getRawParameterValue(params::kLowCutId);
     highCutParam_  = apvts.getRawParameterValue(params::kHighCutId);
+    freezeParam_   = apvts.getRawParameterValue(params::kFreezeId);
 }
 
 void OrbitAudioProcessor::prepareToPlay(double sampleRate, int samplesPerBlock) {
@@ -41,12 +47,19 @@ void OrbitAudioProcessor::updateEngineFromParameters() {
         tap.sync = static_cast<orbit::dsp::SyncDivision>(static_cast<int>(p.sync->load()));
         tap.timeSeconds = p.time->load() / 1000.0f;
         tap.feedback = p.feedback->load();
+        tap.reverse = p.reverse->load() > 0.5f;
+        tap.pitchSemitones = p.pitch->load();
         engine_.setTap(i, tap);
     }
     engine_.setDryWet(dryWetParam_->load());
     engine_.setDuckAmount(duckParam_->load());
+    engine_.setWidth(widthParam_->load());
+    engine_.setPingPong(pingPongParam_->load() > 0.5f);
+    engine_.setCharacterMode(static_cast<orbit::dsp::CharacterStage::Mode>(
+        static_cast<int>(characterModeParam_->load())));
     engine_.setModulation(modDepthParam_->load(), modRateParam_->load());
     engine_.setFilters(lowCutParam_->load(), highCutParam_->load());
+    engine_.setFreeze(freezeParam_->load() > 0.5f);
 }
 
 void OrbitAudioProcessor::processBlock(juce::AudioBuffer<float>& buffer, juce::MidiBuffer&) {
