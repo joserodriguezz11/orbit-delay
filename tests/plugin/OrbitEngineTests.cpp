@@ -284,6 +284,31 @@ TEST_CASE("width narrows or spreads the wet stereo image") {
     CHECK(sideEnergy(2.0f) > 1.5 * normal);                  // spread
 }
 
+TEST_CASE("per-tap reverse and pitch flow through TapSettings") {
+    OrbitEngine engine;
+    engine.prepare(48000.0, 512, 2);
+    TapSettings tap;
+    tap.enabled = true;
+    tap.sync = dsp::SyncDivision::Free;
+    tap.timeSeconds = 400.0f / 48000.0f;
+    tap.feedback = 0.0f;
+    tap.reverse = true;
+    engine.setTap(0, tap);
+    engine.setDryWet(1.0f);
+    engine.setDuckAmount(0.0f);
+    StereoBuffer buf(1200);
+    for (int n = 0; n < 1200; ++n)
+        buf.left[static_cast<size_t>(n)] = buf.right[static_cast<size_t>(n)] =
+            static_cast<float>(n) / 1200.0f;
+    engine.process(buf.channels.data(), 2, 1200);
+    int descending = 0, counted = 0;
+    for (int n = 560; n < 780; ++n) {
+        ++counted;
+        if (buf.left[static_cast<size_t>(n + 1)] < buf.left[static_cast<size_t>(n)]) ++descending;
+    }
+    CHECK(descending > counted * 9 / 10);
+}
+
 TEST_CASE("freeze loops the captured audio indefinitely and ignores new input") {
     auto renderFrozen = [](float postFreezeInput) {
         OrbitEngine engine;

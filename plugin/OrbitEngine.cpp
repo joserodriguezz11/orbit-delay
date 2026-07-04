@@ -37,8 +37,12 @@ void OrbitEngine::setTap(int index, const TapSettings& settings) {
     if (index < 0 || index >= kNumTaps)
         return;
     taps_[static_cast<size_t>(index)] = settings;
-    for (auto& line : lines_[static_cast<size_t>(index)])
+    for (auto& line : lines_[static_cast<size_t>(index)]) {
         line.setFeedback(settings.feedback);
+        line.setReadMode(settings.reverse ? dsp::DelayLine::ReadMode::Reverse
+                                          : dsp::DelayLine::ReadMode::Normal);
+        line.setPitchSemitones(settings.pitchSemitones);
+    }
     applyTapTime(index);
 }
 

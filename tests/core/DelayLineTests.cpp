@@ -135,6 +135,69 @@ TEST_CASE("DelayLine modulation offset shifts the read position") {
     CHECK(std::abs(out[100]) < 1e-6f);
 }
 
+TEST_CASE("Reverse mode plays chunks backwards") {
+    DelayLine line;
+    line.prepare(48000.0, 1.0f);
+    line.setDelaySeconds(400.0f / 48000.0f);
+    line.setReadMode(DelayLine::ReadMode::Reverse);
+    std::vector<float> out;
+    for (int n = 0; n < 1200; ++n) {
+        const float ramp = static_cast<float>(n) / 1200.0f;   // ascending input
+        out.push_back(line.processSample(ramp));
+    }
+    int descending = 0, counted = 0;
+    for (int n = 560; n < 780; ++n) {                          // inside a chunk, clear of crossfades
+        ++counted;
+        if (out[static_cast<size_t>(n + 1)] < out[static_cast<size_t>(n)]) ++descending;
+    }
+    CHECK(descending > counted * 9 / 10);   // ascending in, descending out
+}
+
+TEST_CASE("Reverse mode with feedback stays bounded") {
+    DelayLine line;
+    line.prepare(48000.0, 1.0f);
+    line.setDelaySeconds(400.0f / 48000.0f);
+    line.setReadMode(DelayLine::ReadMode::Reverse);
+    line.setFeedback(0.9f);
+    for (int n = 0; n < 96000; ++n) {
+        const float y = line.processSample(n < 400 ? 0.5f : 0.0f);
+        REQUIRE(std::isfinite(y));
+        REQUIRE(std::abs(y) < 10.0f);
+    }
+}
+
+TEST_CASE("Pitch +12 doubles the frequency of repeats") {
+    DelayLine line;
+    line.prepare(48000.0, 1.0f);
+    line.setDelaySeconds(4800.0f / 48000.0f);
+    line.setPitchSemitones(12.0f);
+    std::vector<float> out;
+    for (int n = 0; n < 14400; ++n) {
+        const float x = std::sin(2.0f * 3.14159265f * 220.0f * static_cast<float>(n) / 48000.0f);
+        out.push_back(line.processSample(x));
+    }
+    int crossings = 0;
+    for (int n = 9600; n < 14399; ++n)                          // settled window, 0.1 s
+        if ((out[static_cast<size_t>(n)] >= 0.0f) != (out[static_cast<size_t>(n + 1)] >= 0.0f))
+            ++crossings;
+    // 220 Hz doubled to 440 Hz -> ~88 crossings per 4800 samples; grain crossfades tolerated
+    CHECK(crossings > 74);
+    CHECK(crossings < 102);
+}
+
+TEST_CASE("Pitch 0 is bit-identical to Normal mode") {
+    DelayLine a, b;
+    a.prepare(48000.0, 1.0f);
+    b.prepare(48000.0, 1.0f);
+    a.setDelaySeconds(100.0f / 48000.0f);
+    b.setDelaySeconds(100.0f / 48000.0f);
+    b.setPitchSemitones(0.0f);
+    for (int n = 0; n < 500; ++n) {
+        const float x = std::sin(0.05f * static_cast<float>(n));
+        REQUIRE(a.processSample(x) == b.processSample(x));
+    }
+}
+
 TEST_CASE("read/writeAndAdvance compose to processSample behavior") {
     DelayLine a, b;
     a.prepare(48000.0, 1.0f);

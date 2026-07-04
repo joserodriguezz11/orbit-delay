@@ -11,9 +11,17 @@ class DelayLine {
 public:
     static constexpr float kMaxFeedback = 0.98f;
     static constexpr float kDefaultGlideSeconds = 0.05f;
+    static constexpr int kReverseCrossfadeSamples = 128;
+
+    // Normal reads at the (glided + modulated) delay; Reverse plays the
+    // just-written history backwards in chunks (glide/mod offsets ignored).
+    enum class ReadMode { Normal = 0, Reverse };
 
     void prepare(double sampleRate, float maxDelaySeconds);
     void reset();
+
+    void setReadMode(ReadMode mode);
+    void setPitchSemitones(float semitones);    // clamped [-12, +12]; 0 disables; ignored while Reverse
 
     // Snaps when called before processing starts (after prepare/reset);
     // glides (one-pole, kDefaultGlideSeconds) when called while running.
@@ -42,6 +50,10 @@ public:
 
 private:
     float readFractional() const;
+    float readAt(double effectiveDelay) const;   // invariant-clamped fractional read
+    float readReverse() const;
+    float readPitched() const;
+    void updateModeGeometry();                   // reverse chunk length + pitch grain window
 
     std::vector<float> buffer_;
     std::size_t writePos_ = 0;
@@ -52,6 +64,13 @@ private:
     float feedback_ = 0.0f;
     double sampleRate_ = 44100.0;
     bool running_ = false;
+    ReadMode readMode_ = ReadMode::Normal;
+    std::size_t reverseChunkLen_ = 256;          // L: recomputed on target-delay changes only
+    std::size_t reverseCounter_ = 0;             // j in [0, L)
+    float pitchSemitones_ = 0.0f;
+    double pitchRatio_ = 1.0;                    // 2^(semitones/12); exactly 1.0 disables
+    double pitchWindowSamples_ = 256.0;          // W: grain window
+    double grainPhase_ = 0.0;                    // p0 in [0, 1); p1 = p0 + 0.5 mod 1
 };
 
 } // namespace orbit::dsp

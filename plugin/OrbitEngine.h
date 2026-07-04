@@ -13,6 +13,8 @@ struct TapSettings {
     dsp::SyncDivision sync = dsp::SyncDivision::Free;
     float timeSeconds = 0.35f;   // used when sync == Free
     float feedback = 0.35f;
+    bool reverse = false;              // chunked backward playback
+    float pitchSemitones = 0.0f;       // repeat pitch shift; 0 off; ignored while reverse
 };
 
 // Orbit's 4-tap delay topology. Pure C++ (no JUCE) so it unit-tests headlessly.
