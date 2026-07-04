@@ -56,6 +56,8 @@ void OrbitEngine::setWidth(float width01to2) {
     width_ = std::clamp(width01to2, 0.0f, 2.0f);
 }
 
+void OrbitEngine::setFreeze(bool enabled) { frozen_ = enabled; }
+
 void OrbitEngine::setModulation(float depth01, float rateHz) {
     const float depth = std::clamp(depth01, 0.0f, 1.0f);
     modDepthSamples_ = depth * kMaxModSeconds * static_cast<float>(sampleRate_);
@@ -136,11 +138,18 @@ void OrbitEngine::process(float* const* channelData, int numChannels, int numSam
             }
             for (int ch = 0; ch < channels; ++ch) {
                 auto& line = tapLines[static_cast<size_t>(ch)];
-                // Ping-pong: each channel feeds back the OTHER channel's output
-                // so the echo bounces L -> R -> L. Off (or mono): own output —
-                // identical topology to the pre-split processSample path.
-                const float fbSource = cross ? outs[1 - ch] : outs[ch];
-                line.writeAndAdvance(dry[ch] + fbSource * line.feedback());
+                if (frozen_) {
+                    // Freeze: recirculate the captured audio at unity — no new
+                    // input enters the line, and ping-pong's cross-write is
+                    // bypassed so each line simply loops its own read forever.
+                    line.writeAndAdvance(outs[ch]);
+                } else {
+                    // Ping-pong: each channel feeds back the OTHER channel's output
+                    // so the echo bounces L -> R -> L. Off (or mono): own output —
+                    // identical topology to the pre-split processSample path.
+                    const float fbSource = cross ? outs[1 - ch] : outs[ch];
+                    line.writeAndAdvance(dry[ch] + fbSource * line.feedback());
+                }
             }
             // Disabled taps keep processing (buffers stay warm -> no clicks
             // on re-enable) but don't contribute to the mix.

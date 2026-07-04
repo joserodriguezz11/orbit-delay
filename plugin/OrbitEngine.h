@@ -35,6 +35,7 @@ public:
     void setFilters(float lowCutHz, float highCutHz); // lowCut <= 0 off; highCut >= 20000 off
     void setPingPong(bool enabled);                   // stereo only: feedback crosses channels
     void setWidth(float width01to2);                  // wet mid/side width: 0 mono, 1 pass, 2 wide
+    void setFreeze(bool enabled);                     // recirculate lines at unity; input stops entering
 
     // In-place processing. channelData must have >= numChannels pointers.
     void process(float* const* channelData, int numChannels, int numSamples);
@@ -60,6 +61,7 @@ private:
     float mix_ = 0.3f;
     bool pingPong_ = false;
     float width_ = 1.0f;
+    bool frozen_ = false;
     double bpm_ = 120.0;
     double sampleRate_ = 44100.0;
     int numChannels_ = kMaxChannels;

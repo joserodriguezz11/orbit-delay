@@ -283,3 +283,41 @@ TEST_CASE("width narrows or spreads the wet stereo image") {
     CHECK(sideEnergy(0.0f) == Approx(0.0).margin(1e-6));    // mono-ized wet
     CHECK(sideEnergy(2.0f) > 1.5 * normal);                  // spread
 }
+
+TEST_CASE("freeze loops the captured audio indefinitely and ignores new input") {
+    auto renderFrozen = [](float postFreezeInput) {
+        OrbitEngine engine;
+        engine.prepare(48000.0, 512, 2);
+        TapSettings tap;
+        tap.enabled = true;
+        tap.sync = dsp::SyncDivision::Free;
+        tap.timeSeconds = 100.0f / 48000.0f;
+        tap.feedback = 0.0f;
+        engine.setTap(0, tap);
+        engine.setDryWet(1.0f);                       // wet only: dry removed
+        engine.setDuckAmount(0.0f);
+        StereoBuffer capture(100);
+        for (int n = 0; n < 100; ++n)                 // deterministic "audio" to capture
+            capture.left[static_cast<size_t>(n)] = capture.right[static_cast<size_t>(n)] =
+                std::sin(0.37f * static_cast<float>(n));
+        engine.process(capture.channels.data(), 2, 100);
+        engine.setFreeze(true);
+        StereoBuffer frozen(1000);
+        std::fill(frozen.left.begin(), frozen.left.end(), postFreezeInput);
+        std::fill(frozen.right.begin(), frozen.right.end(), postFreezeInput);
+        engine.process(frozen.channels.data(), 2, 1000);
+        return frozen.left;
+    };
+
+    const auto quiet = renderFrozen(0.0f);
+    const auto loud = renderFrozen(0.9f);
+    double loopEnergyFirst = 0.0, loopEnergyLast = 0.0;
+    for (int n = 0; n < 500; ++n)
+        loopEnergyFirst += std::abs(quiet[static_cast<size_t>(n)]);
+    for (int n = 500; n < 1000; ++n)
+        loopEnergyLast += std::abs(quiet[static_cast<size_t>(n)]);
+    CHECK(loopEnergyFirst > 1.0);                                   // something is looping
+    CHECK(loopEnergyLast == Approx(loopEnergyFirst).epsilon(0.05)); // no decay
+    for (int n = 0; n < 1000; ++n)                                  // input doesn't leak into wet
+        REQUIRE(quiet[static_cast<size_t>(n)] == Approx(loud[static_cast<size_t>(n)]).margin(1e-4f));
+}
