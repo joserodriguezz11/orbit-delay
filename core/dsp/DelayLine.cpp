@@ -40,6 +40,9 @@ void DelayLine::setDelaySeconds(float seconds) {
 }
 
 void DelayLine::setReadMode(ReadMode mode) {
+    // Accepted v1 behavior: toggling Reverse mid-stream jumps the read head
+    // (~one delay length), so a click is expected at the switch. A mode-switch
+    // crossfade is a known Wave-3 candidate.
     if (mode == readMode_)
         return;
     readMode_ = mode;
@@ -101,6 +104,8 @@ float DelayLine::readReverse() const {
     // maps to effective delay d(j) = 2j + 1, so the read head sweeps the
     // just-written chunk backwards while the write head moves forward.
     // Glide/mod offsets are ignored — chunk timing is authoritative.
+    // With feedback, reverse repeats alternate direction (each pass re-reverses
+    // the previous one) — accepted, musical behavior (plan-documented).
     const double j = static_cast<double>(reverseCounter_);
     const float newer = readAt(2.0 * j + 1.0);
     if (reverseCounter_ >= static_cast<std::size_t>(kReverseCrossfadeSamples))

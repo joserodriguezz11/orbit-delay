@@ -20,10 +20,11 @@ juce::AudioProcessorValueTreeState::ParameterLayout createLayout() {
         parameters.push_back(std::make_unique<juce::AudioParameterFloat>(
             juce::ParameterID(tapFeedbackId(i), 1), "Tap " + n + " Feedback",
             juce::NormalisableRange<float>(0.0f, 0.98f), 0.35f));
+        // Version hint = the wave that introduced the parameter; never renumber existing params.
         parameters.push_back(std::make_unique<juce::AudioParameterBool>(
-            juce::ParameterID(tapReverseId(i), 1), "Tap " + n + " Reverse", false));
+            juce::ParameterID(tapReverseId(i), 2), "Tap " + n + " Reverse", false));
         parameters.push_back(std::make_unique<juce::AudioParameterFloat>(
-            juce::ParameterID(tapPitchId(i), 1), "Tap " + n + " Pitch",
+            juce::ParameterID(tapPitchId(i), 2), "Tap " + n + " Pitch",
             juce::NormalisableRange<float>(-12.0f, 12.0f, 1.0f), 0.0f));   // semitone snap
     }
 
@@ -34,15 +35,15 @@ juce::AudioProcessorValueTreeState::ParameterLayout createLayout() {
         juce::ParameterID(kDuckId, 1), "Ducking",
         juce::NormalisableRange<float>(0.0f, 1.0f), 0.5f));
     parameters.push_back(std::make_unique<juce::AudioParameterFloat>(
-        juce::ParameterID(kWidthId, 1), "Width",
+        juce::ParameterID(kWidthId, 2), "Width",
         juce::NormalisableRange<float>(0.0f, 2.0f), 1.0f));
     parameters.push_back(std::make_unique<juce::AudioParameterBool>(
-        juce::ParameterID(kPingPongId, 1), "Ping-Pong", false));
+        juce::ParameterID(kPingPongId, 2), "Ping-Pong", false));
 
     // Enum-order contract: kCharacterChoices is built from kCharacterModeNames
     // and enforced at compile time by the static_assert in CharacterStage.h.
     parameters.push_back(std::make_unique<juce::AudioParameterChoice>(
-        juce::ParameterID(kCharacterModeId, 1), "Character", kCharacterChoices, 0));
+        juce::ParameterID(kCharacterModeId, 2), "Character", kCharacterChoices, 0));
 
     parameters.push_back(std::make_unique<juce::AudioParameterFloat>(
         juce::ParameterID(kModDepthId, 1), "Motion Depth",
@@ -58,7 +59,7 @@ juce::AudioProcessorValueTreeState::ParameterLayout createLayout() {
         juce::NormalisableRange<float>(200.0f, 20000.0f, 0.0f, 0.4f), 20000.0f));
 
     parameters.push_back(std::make_unique<juce::AudioParameterBool>(
-        juce::ParameterID(kFreezeId, 1), "Freeze", false));
+        juce::ParameterID(kFreezeId, 2), "Freeze", false));
 
     return { parameters.begin(), parameters.end() };
 }

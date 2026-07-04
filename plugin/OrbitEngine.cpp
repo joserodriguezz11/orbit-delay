@@ -154,6 +154,15 @@ void OrbitEngine::process(float* const* channelData, int numChannels, int numSam
                     // Freeze: recirculate the captured audio at unity — no new
                     // input enters the line, and ping-pong's cross-write is
                     // bypassed so each line simply loops its own read forever.
+                    //
+                    // Design notes (accepted behavior):
+                    // (1) While frozen, glide and Motion still move the read
+                    //     positions, so tap-time/BPM/Motion changes re-pitch or
+                    //     smear the frozen loop. This is bounded — all read
+                    //     paths are convex combinations of buffer contents.
+                    // (2) With ping-pong on, disabled warm-keeping taps also
+                    //     cross their feedback (intentional; default path
+                    //     unaffected).
                     line.writeAndAdvance(outs[ch]);
                 } else {
                     // Ping-pong: each channel feeds back the OTHER channel's output

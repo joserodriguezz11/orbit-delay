@@ -145,7 +145,7 @@ git commit -m "fix: wave-1 hardening — compile-time sync contract, denormal fl
 
 **Algorithm (implement exactly):**
 - **Clean:** return input unchanged (true bypass).
-- **Tape:** `sat = std::tanh(1.5f * x) / std::tanh(1.5f)` then one-pole LP at 7500 Hz (internal OnePole).
+- **Tape:** `sat = std::tanh(1.5f * x) / 1.5f` then one-pole LP at 7500 Hz (internal OnePole). (normalization corrected from tanh(1.5) to 1.5 during implementation — the original denominator fails the binding low-level linearity test `outSmall ≈ 0.1 ± 0.02`; adjudicated at Task 2 review)
 - **Grit:** `sat = x / (1.0f + std::abs(1.8f * x))` scaled by `(1.0f + 1.8f)` (normalized soft-clip, harder knee), then one-pole LP at 3500 Hz, then add gated noise: `noise = (xorshift32 float in ±1) * 0.003f * envelope` where `envelope` is a 10 ms/200 ms follower of `|input|` (reuse the Ducker's coefficient formula inline; noise is exactly 0 when input is silent so a default-state plugin stays silent). xorshift32 seeded with a fixed constant (deterministic tests): `state = state ^ (state << 13); state ^= state >> 17; state ^= state << 5;` mapped to [-1, 1].
 
 - [ ] **Step 1: failing tests** (`tests/core/CharacterStageTests.cpp`):
