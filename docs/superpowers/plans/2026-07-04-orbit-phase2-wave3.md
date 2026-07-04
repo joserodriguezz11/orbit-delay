@@ -237,24 +237,30 @@ TEST_CASE("level snapshot: write then read round-trips") {
 TEST_CASE("level snapshot: reader never sees a torn write") {
     VizFeed feed;
     feed.prepare();
+    // Seed before spawning the writer: the prepare() default {0,0,0,0,1}
+    // does NOT satisfy the all-equal invariant, and the reader may run
+    // before the writer's first write. (Amended during implementation —
+    // the original test failed deterministically on that startup race.)
+    feed.writeLevels({ 0.0f, 0.0f, 0.0f, 0.0f, 0.0f });
     std::atomic<bool> stop { false };
     std::thread writer([&] {
-        float x = 0.0f;
+        float x = 0.25f;
         while (!stop.load()) {
             // all five fields carry the same value: any mix = a torn read
             feed.writeLevels({ x, x, x, x, x });
             x += 0.25f;
         }
     });
-    for (int i = 0; i < 200000; ++i) {
+    bool torn = false;
+    for (int i = 0; i < 200000 && !torn; ++i) {
         const auto s = feed.readLevels();
-        REQUIRE(s.inRms == s.inPeak);
-        REQUIRE(s.inRms == s.outRms);
-        REQUIRE(s.inRms == s.outPeak);
-        REQUIRE(s.inRms == s.duckGain);
+        torn = !(s.inRms == s.inPeak && s.inRms == s.outRms
+                 && s.inRms == s.outPeak && s.inRms == s.duckGain);
     }
     stop.store(true);
     writer.join();
+    REQUIRE_FALSE(torn);   // assert only after join: a REQUIRE throw must
+                           // not destroy a joinable thread (SIGABRT)
 }
 ```
 
