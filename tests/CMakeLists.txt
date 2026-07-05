@@ -13,6 +13,7 @@ add_executable(orbit_tests
     core/LfoTests.cpp
     core/CharacterStageTests.cpp
     core/VizFeedTests.cpp
+    core/TapFireDetectorTests.cpp
     plugin/OrbitEngineTests.cpp
     ${CMAKE_SOURCE_DIR}/plugin/OrbitEngine.cpp)
 
