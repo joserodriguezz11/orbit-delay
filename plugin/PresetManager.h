@@ -22,7 +22,7 @@ public:
     ~PresetManager() override;
 
     // Enumeration
-    const juce::Array<PresetInfo>& factoryPresets() const;  // empty until Task 3 wires BinaryData
+    const juce::Array<PresetInfo>& factoryPresets() const;  // embedded BinaryData, filename order
     juce::Array<PresetInfo> userPresets() const;             // rescans folder
     juce::Array<PresetInfo> filterByTag(const juce::String& tag) const; // both lists
 
@@ -30,6 +30,10 @@ public:
     bool loadPreset(const PresetInfo&);                 // false on invalid/foreign
     juce::String currentPresetName() const;             // "" if none loaded
     bool isModified() const;                            // param changed since load
+
+    // Raw XML text of a preset (factory: embedded BinaryData resource; user:
+    // file contents). Empty string if the preset cannot be resolved.
+    juce::String presetXmlFor(const PresetInfo&) const;
 
     // User presets
     bool saveUserPreset(const juce::String& name, const juce::String& tags,
@@ -59,7 +63,7 @@ private:
 
     juce::AudioProcessorValueTreeState& apvts_;
     juce::File userDirOverride_;
-    juce::Array<PresetInfo> factoryPresets_;  // populated in Task 3 (BinaryData)
+    juce::Array<PresetInfo> factoryPresets_;  // enumerated from BinaryData at construction
     juce::StringArray listenedParamIds_;
     juce::String currentPresetName_;
     bool modified_ = false;

@@ -1,3 +1,15 @@
+# Factory presets embedded as binary data. Enumeration in PresetManager uses
+# BinaryData::namedResourceList + getNamedResourceOriginalFilename, so the
+# mangled symbol names never need to be spelled out.
+file(GLOB ORBIT_PRESET_SOURCES CONFIGURE_DEPENDS
+    "${CMAKE_SOURCE_DIR}/assets/presets/*.orbitpreset")
+list(SORT ORBIT_PRESET_SOURCES)
+list(LENGTH ORBIT_PRESET_SOURCES ORBIT_PRESET_COUNT)
+if(NOT ORBIT_PRESET_COUNT EQUAL 40)
+    message(FATAL_ERROR "Expected 40 factory presets, found ${ORBIT_PRESET_COUNT}")
+endif()
+juce_add_binary_data(OrbitPresetData SOURCES ${ORBIT_PRESET_SOURCES})
+
 juce_add_plugin(OrbitDelay
     COMPANY_NAME "${ORBIT_COMPANY_NAME}"
     BUNDLE_ID "${ORBIT_BUNDLE_ID}"
@@ -24,6 +36,7 @@ target_compile_definitions(OrbitDelay PUBLIC
 target_link_libraries(OrbitDelay
     PRIVATE
         orbit_core
+        OrbitPresetData
         juce::juce_audio_utils
     PUBLIC
         juce::juce_recommended_config_flags

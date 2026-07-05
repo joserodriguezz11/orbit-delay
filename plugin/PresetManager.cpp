@@ -1,10 +1,23 @@
 #include "PresetManager.h"
+#include "BinaryData.h"
+
+#include <algorithm>
+#include <vector>
 
 namespace orbit {
 
 namespace {
 constexpr auto kPresetExtension = ".orbitpreset";
 constexpr auto kMetaNodeName    = "PresetMeta";
+
+// Raw text of an embedded resource by namedResourceList index ("" if invalid).
+juce::String factoryResourceText(int index) {
+    if (index < 0 || index >= BinaryData::namedResourceListSize)
+        return {};
+    int size = 0;
+    const char* data = BinaryData::getNamedResource(BinaryData::namedResourceList[index], size);
+    return data == nullptr ? juce::String() : juce::String::fromUTF8(data, size);
+}
 
 PresetInfo makeUserInfo(const juce::File& file) {
     PresetInfo info;
@@ -42,6 +55,36 @@ PresetManager::PresetManager(juce::AudioProcessorValueTreeState& apvts,
     // slot A live. copyState() returns independent deep copies.
     slotA_ = apvts_.copyState();
     slotB_ = apvts_.copyState();
+
+    // Factory enumeration: every embedded *.orbitpreset resource, sorted by
+    // original filename (the NN_ prefix gives the stable release order).
+    struct Entry { juce::String originalFilename; PresetInfo info; };
+    std::vector<Entry> entries;
+    for (int i = 0; i < BinaryData::namedResourceListSize; ++i) {
+        const juce::String original =
+            BinaryData::getNamedResourceOriginalFilename(BinaryData::namedResourceList[i]);
+        if (!original.endsWith(kPresetExtension))
+            continue;
+        PresetInfo info;
+        info.isFactory = true;
+        info.binaryDataIndex = i;
+        info.name = original.dropLastCharacters(
+            static_cast<int>(juce::String(kPresetExtension).length()));
+        if (const auto xml = juce::parseXML(factoryResourceText(i)))
+            if (const auto* meta = xml->getChildByName(kMetaNodeName)) {
+                info.name        = meta->getStringAttribute("name", info.name);
+                info.tags        = meta->getStringAttribute("tags");
+                info.author      = meta->getStringAttribute("author");
+                info.description = meta->getStringAttribute("description");
+            }
+        entries.push_back({ original, std::move(info) });
+    }
+    std::sort(entries.begin(), entries.end(),
+              [](const Entry& a, const Entry& b) {
+                  return a.originalFilename.compareNatural(b.originalFilename) < 0;
+              });
+    for (auto& e : entries)
+        factoryPresets_.add(std::move(e.info));
 }
 
 PresetManager::~PresetManager() {
@@ -53,7 +96,7 @@ PresetManager::~PresetManager() {
 // Enumeration
 
 const juce::Array<PresetInfo>& PresetManager::factoryPresets() const {
-    return factoryPresets_;   // empty until Task 3 wires BinaryData
+    return factoryPresets_;   // built once at construction from BinaryData
 }
 
 juce::Array<PresetInfo> PresetManager::userPresets() const {
@@ -79,11 +122,19 @@ juce::Array<PresetInfo> PresetManager::filterByTag(const juce::String& tag) cons
 // Application
 
 bool PresetManager::loadPreset(const PresetInfo& info) {
-    if (info.isFactory)
-        return false;   // Task 3: factory loading via BinaryData shares applyPresetXml
+    if (info.isFactory) {
+        const auto xml = factoryResourceText(info.binaryDataIndex);
+        return xml.isNotEmpty() && applyPresetXml(xml, info.name);
+    }
     if (!info.file.existsAsFile())
         return false;
     return applyPresetXml(info.file.loadFileAsString(), info.name);
+}
+
+juce::String PresetManager::presetXmlFor(const PresetInfo& info) const {
+    if (info.isFactory)
+        return factoryResourceText(info.binaryDataIndex);
+    return info.file.existsAsFile() ? info.file.loadFileAsString() : juce::String();
 }
 
 juce::String PresetManager::currentPresetName() const { return currentPresetName_; }

@@ -69,17 +69,26 @@ TEST_CASE_METHOD(Fixture, "dirty flag lifecycle") {
 }
 
 TEST_CASE_METHOD(Fixture, "tag filtering, overwrite protection, delete and rename") {
+    // filterByTag spans factory + user lists by design; this case exercises
+    // the user-preset half, so filter the factory entries back out.
+    auto userByTag = [this](const juce::String& tag) {
+        juce::Array<orbit::PresetInfo> out;
+        for (const auto& p : pm->filterByTag(tag))
+            if (!p.isFactory)
+                out.add(p);
+        return out;
+    };
     REQUIRE(pm->saveUserPreset("VoxOne", "Vocals", "", false));
     REQUIRE(pm->saveUserPreset("DrumOne", "Drums", "", false));
     CHECK_FALSE(pm->saveUserPreset("VoxOne", "Vocals", "", false));   // exists
     REQUIRE(pm->saveUserPreset("VoxOne", "Vocals", "v2", true));      // overwrite ok
-    CHECK(pm->filterByTag("Vocals").size() == 1);
-    CHECK(pm->filterByTag("Drums").size() == 1);
-    CHECK(pm->filterByTag("Ambient").size() == 0);
-    auto vox = pm->filterByTag("Vocals")[0];
+    CHECK(userByTag("Vocals").size() == 1);
+    CHECK(userByTag("Drums").size() == 1);
+    CHECK(userByTag("Ambient").size() == 0);
+    auto vox = userByTag("Vocals")[0];
     REQUIRE(pm->renameUserPreset(vox, "VoxTwo"));
-    CHECK(pm->filterByTag("Vocals")[0].name == "VoxTwo");
-    REQUIRE(pm->deleteUserPreset(pm->filterByTag("Vocals")[0]));
+    CHECK(userByTag("Vocals")[0].name == "VoxTwo");
+    REQUIRE(pm->deleteUserPreset(userByTag("Vocals")[0]));
     CHECK(pm->userPresets().size() == 1);
 }
 
@@ -117,4 +126,59 @@ TEST_CASE_METHOD(Fixture, "toggleAB sets modified and keeps preset name") {
     pm->toggleAB();
     CHECK(pm->isModified());
     CHECK(pm->currentPresetName() == "Named");
+}
+
+//==============================================================================
+// Factory preset validation (Task 3). Tree shape confirmed from a real
+// saveUserPreset dump: <PARAMS> root with <PARAM id=... value=.../> children
+// plus a <PresetMeta> child — the brief's PARAM/id naming matches reality.
+
+TEST_CASE_METHOD(Fixture, "factory set: 40 presets, unique names, valid tags, ordered") {
+    const auto& f = pm->factoryPresets();
+    REQUIRE(f.size() == 40);
+    juce::StringArray names;
+    const juce::StringArray vocab { "Vocals", "Drums", "Ambient", "Dub", "Lo-fi", "Utility" };
+    for (auto& p : f) {
+        CHECK(p.isFactory);
+        CHECK(p.name.isNotEmpty());
+        names.addIfNotAlreadyThere(p.name);
+        for (auto& t : juce::StringArray::fromTokens(p.tags, ",", ""))
+            CHECK(vocab.contains(t.trim()));
+        CHECK(p.description.isNotEmpty());
+    }
+    CHECK(names.size() == 40);                     // unique
+}
+
+TEST_CASE_METHOD(Fixture, "every factory preset loads and every value is in range") {
+    for (auto& p : pm->factoryPresets()) {
+        REQUIRE(pm->loadPreset(p));
+        for (auto* param : proc.getParameters()) {
+            auto* rp = dynamic_cast<juce::RangedAudioParameter*>(param);
+            REQUIRE(rp != nullptr);
+            const float norm = rp->getValue();
+            CHECK(norm >= 0.0f);
+            CHECK(norm <= 1.0f);
+        }
+        CHECK(pm->currentPresetName() == p.name);
+        CHECK_FALSE(pm->isModified());
+    }
+}
+
+TEST_CASE_METHOD(Fixture, "factory presets reference only real parameter IDs") {
+    // Loading via replaceState silently drops unknown children; guard by
+    // checking each preset XML's parameter ids against the layout.
+    juce::StringArray known;
+    for (auto* param : proc.getParameters())
+        if (auto* wid = dynamic_cast<juce::AudioProcessorParameterWithID*>(param))
+            known.add(wid->paramID);
+    for (auto& p : pm->factoryPresets()) {
+        const auto xml = pm->presetXmlFor(p);
+        auto tree = juce::ValueTree::fromXml(xml);
+        REQUIRE(tree.isValid());
+        for (int i = 0; i < tree.getNumChildren(); ++i) {
+            auto child = tree.getChild(i);
+            if (child.hasType("PARAM"))
+                CHECK(known.contains(child.getProperty("id").toString()));
+        }
+    }
 }

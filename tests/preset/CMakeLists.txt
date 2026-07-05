@@ -15,6 +15,7 @@ target_compile_definitions(orbit_preset_tests PRIVATE
 
 target_link_libraries(orbit_preset_tests PRIVATE
     orbit_core
+    OrbitPresetData
     Catch2::Catch2WithMain
     juce::juce_audio_processors
     juce::juce_recommended_config_flags)
