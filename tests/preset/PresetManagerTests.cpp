@@ -89,3 +89,32 @@ TEST_CASE_METHOD(Fixture, "filenames are sanitized") {
     REQUIRE(files.size() == 1);
     CHECK_FALSE(files[0].getFileName().containsAnyOf("/\\:<>?*|\""));
 }
+
+TEST_CASE_METHOD(Fixture, "A/B: edits survive a round trip") {
+    set("mix_width", 1.9f);                        // edit on A
+    pm->toggleAB();                                // -> B (default state)
+    CHECK(pm->isSlotB());
+    CHECK(get("mix_width") != Approx(1.9f).epsilon(0.001));
+    set("tap1_feedback", 0.33f);                   // edit on B
+    pm->toggleAB();                                // -> back to A
+    CHECK_FALSE(pm->isSlotB());
+    CHECK(get("mix_width") == Approx(1.9f));       // A's edit preserved
+    pm->toggleAB();                                // -> B again
+    CHECK(get("tap1_feedback") == Approx(0.33f));  // B's edit preserved
+}
+
+TEST_CASE_METHOD(Fixture, "copyAB clones live over inactive and keeps live untouched") {
+    set("mix_width", 1.8f);
+    pm->copyAB();                                  // B := A
+    CHECK(get("mix_width") == Approx(1.8f));       // live unchanged
+    pm->toggleAB();                                // -> B
+    CHECK(get("mix_width") == Approx(1.8f));       // clone applied
+}
+
+TEST_CASE_METHOD(Fixture, "toggleAB sets modified and keeps preset name") {
+    REQUIRE(pm->saveUserPreset("Named", "Utility", "", false));
+    REQUIRE(pm->loadPreset(pm->userPresets()[0]));
+    pm->toggleAB();
+    CHECK(pm->isModified());
+    CHECK(pm->currentPresetName() == "Named");
+}

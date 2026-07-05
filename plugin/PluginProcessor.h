@@ -3,6 +3,7 @@
 #include <juce_audio_utils/juce_audio_utils.h>
 #include "OrbitEngine.h"
 #include "Parameters.h"
+#include "PresetManager.h"
 
 class OrbitAudioProcessor : public juce::AudioProcessor {
 public:
@@ -22,6 +23,7 @@ public:
     bool isMidiEffect() const override { return false; }
     double getTailLengthSeconds() const override { return orbit::OrbitEngine::kMaxDelaySeconds; }
 
+    // Host program API stays at 1 — the Phase 3 preset browser supersedes DAW program menus (spec §2 decision).
     int getNumPrograms() override { return 1; }
     int getCurrentProgram() override { return 0; }
     void setCurrentProgram(int) override {}
@@ -33,10 +35,16 @@ public:
 
     juce::AudioProcessorValueTreeState apvts;
 
+    orbit::PresetManager& presetManager() { return *presetManager_; }
+
 private:
     void updateEngineFromParameters();
 
     orbit::OrbitEngine engine_;
+
+    // Declared after apvts — the manager's constructor takes a reference to a
+    // fully constructed apvts (member declaration order controls this).
+    std::unique_ptr<orbit::PresetManager> presetManager_;
 
     struct TapParamPointers {
         std::atomic<float>* enabled = nullptr;

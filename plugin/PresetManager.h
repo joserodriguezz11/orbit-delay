@@ -38,10 +38,11 @@ public:
     bool deleteUserPreset(const PresetInfo&);           // user presets only
     bool renameUserPreset(const PresetInfo&, const juce::String& newName);
 
-    // A/B compare — declared per spec §2; implemented in Task 2.
-    void toggleAB();      // Task 2
-    void copyAB();        // Task 2
-    bool isSlotB() const; // Task 2
+    // A/B compare (spec §3): two session-local full-state slots, never
+    // serialized. Fresh instance = both slots hold construction state, A live.
+    void toggleAB();      // capture live -> current slot, apply the other; sets modified
+    void copyAB();        // inactive := live; live state and modified flag untouched
+    bool isSlotB() const; // false = slot A live
 
     static juce::File userPresetDirectory();  // created on demand
 
@@ -63,6 +64,10 @@ private:
     juce::String currentPresetName_;
     bool modified_ = false;
     bool suppressDirty_ = false;   // guards listener during load/save
+
+    // A/B slots hold parameter-only trees (no PresetMeta ever, spec §3).
+    juce::ValueTree slotA_, slotB_;
+    bool slotBActive_ = false;
 
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(PresetManager)
 };

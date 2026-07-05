@@ -37,6 +37,11 @@ PresetManager::PresetManager(juce::AudioProcessorValueTreeState& apvts,
             listenedParamIds_.add(withId->paramID);
             apvts_.addParameterListener(withId->paramID, this);
         }
+
+    // Spec §3: fresh instance — both A/B slots hold the construction state,
+    // slot A live. copyState() returns independent deep copies.
+    slotA_ = apvts_.copyState();
+    slotB_ = apvts_.copyState();
 }
 
 PresetManager::~PresetManager() {
@@ -136,11 +141,30 @@ bool PresetManager::renameUserPreset(const PresetInfo& info, const juce::String&
 }
 
 //==============================================================================
-// A/B compare — Task 2 stubs (declared so the Task 1 API is complete).
+// A/B compare (spec §3). Slots hold parameter-only trees — copyState() never
+// contains PresetMeta (that node exists only inside saved preset files).
 
-void PresetManager::toggleAB() {}                 // Task 2
-void PresetManager::copyAB() {}                   // Task 2
-bool PresetManager::isSlotB() const { return false; }  // Task 2
+void PresetManager::toggleAB() {
+    // Capture live state into the slot being left, so edits are never lost.
+    (slotBActive_ ? slotB_ : slotA_) = apvts_.copyState();
+    slotBActive_ = !slotBActive_;
+
+    // Apply the other slot via the same suppress-dirty replaceState path the
+    // load path uses. createCopy() keeps the slot independent of the live tree.
+    suppressDirty_ = true;
+    apvts_.replaceState((slotBActive_ ? slotB_ : slotA_).createCopy());
+    suppressDirty_ = false;
+
+    modified_ = true;   // the applied slot's state counts as an edit (spec §3)
+    // currentPresetName_ intentionally unchanged.
+}
+
+void PresetManager::copyAB() {
+    // inactive := live; live state and modified flag untouched.
+    (slotBActive_ ? slotA_ : slotB_) = apvts_.copyState();
+}
+
+bool PresetManager::isSlotB() const { return slotBActive_; }
 
 //==============================================================================
 

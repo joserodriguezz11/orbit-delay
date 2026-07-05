@@ -25,6 +25,9 @@ OrbitAudioProcessor::OrbitAudioProcessor()
     lowCutParam_   = apvts.getRawParameterValue(params::kLowCutId);
     highCutParam_  = apvts.getRawParameterValue(params::kHighCutId);
     freezeParam_   = apvts.getRawParameterValue(params::kFreezeId);
+
+    // Production default user-preset directory (no override).
+    presetManager_ = std::make_unique<orbit::PresetManager>(apvts);
 }
 
 void OrbitAudioProcessor::prepareToPlay(double sampleRate, int samplesPerBlock) {
