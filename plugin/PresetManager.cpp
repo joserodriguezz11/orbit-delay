@@ -139,7 +139,7 @@ juce::String PresetManager::presetXmlFor(const PresetInfo& info) const {
 
 juce::String PresetManager::currentPresetName() const { return currentPresetName_; }
 
-bool PresetManager::isModified() const { return modified_; }
+bool PresetManager::isModified() const { return modified_.load(std::memory_order_relaxed); }
 
 //==============================================================================
 // User presets
@@ -158,7 +158,7 @@ bool PresetManager::saveUserPreset(const juce::String& name, const juce::String&
         return false;
 
     currentPresetName_ = name;
-    modified_ = false;   // save clears the dirty flag
+    modified_.store(false, std::memory_order_relaxed);   // save clears the dirty flag
     return true;
 }
 
@@ -202,11 +202,12 @@ void PresetManager::toggleAB() {
 
     // Apply the other slot via the same suppress-dirty replaceState path the
     // load path uses. createCopy() keeps the slot independent of the live tree.
-    suppressDirty_ = true;
-    apvts_.replaceState((slotBActive_ ? slotB_ : slotA_).createCopy());
-    suppressDirty_ = false;
+    {
+        const ScopedSuppress suppress(suppressDirty_);
+        apvts_.replaceState((slotBActive_ ? slotB_ : slotA_).createCopy());
+    }
 
-    modified_ = true;   // the applied slot's state counts as an edit (spec §3)
+    modified_.store(true, std::memory_order_relaxed);   // the applied slot's state counts as an edit (spec §3)
     // currentPresetName_ intentionally unchanged.
 }
 
@@ -231,9 +232,11 @@ juce::File PresetManager::userPresetDirectory() {
 //==============================================================================
 // Private
 
+// May fire on the AUDIO thread (host automation via the VST3/AU wrappers):
+// relaxed atomics only — no allocation, no locks.
 void PresetManager::parameterChanged(const juce::String&, float) {
-    if (!suppressDirty_)
-        modified_ = true;
+    if (!suppressDirty_.load(std::memory_order_relaxed))
+        modified_.store(true, std::memory_order_relaxed);
 }
 
 juce::ValueTree PresetManager::stateWithMeta(const juce::String& name,
@@ -273,12 +276,13 @@ bool PresetManager::applyPresetXml(const juce::String& xml, const juce::String& 
 
     tree.removeChild(tree.getChildWithName(kMetaNodeName), nullptr);
 
-    suppressDirty_ = true;
-    apvts_.replaceState(tree);
-    suppressDirty_ = false;
+    {
+        const ScopedSuppress suppress(suppressDirty_);
+        apvts_.replaceState(tree);
+    }
 
     currentPresetName_ = presetName;
-    modified_ = false;   // load clears the dirty flag
+    modified_.store(false, std::memory_order_relaxed);   // load clears the dirty flag
     return true;
 }
 

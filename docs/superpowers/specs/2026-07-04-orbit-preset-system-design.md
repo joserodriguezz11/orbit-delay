@@ -101,7 +101,8 @@ editable text.
 
 ## 5. Testing
 
-Headless Catch2 tests (new `tests/plugin/PresetManagerTests.cpp`; JUCE
+Headless Catch2 tests (new `tests/preset/PresetManagerTests.cpp`, own CMake
+target — matches what shipped; JUCE
 initialised via `juce::ScopedJuceInitialiser_GUI` fixture — same pattern
 pluginval uses; user-preset tests point the manager at a temp directory).
 Cover:

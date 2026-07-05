@@ -92,6 +92,27 @@ TEST_CASE_METHOD(Fixture, "tag filtering, overwrite protection, delete and renam
     CHECK(pm->userPresets().size() == 1);
 }
 
+TEST_CASE_METHOD(Fixture, "filterByTag spans factory and user presets") {
+    const auto factoryOnly = pm->filterByTag("Utility");
+    CHECK(factoryOnly.size() >= 4);                // factory set ships >= 4 Utility presets
+    int factoryCount = 0;
+    for (const auto& p : factoryOnly) {
+        CHECK(p.isFactory);
+        if (p.isFactory)
+            ++factoryCount;
+    }
+    CHECK(factoryCount >= 4);
+
+    REQUIRE(pm->saveUserPreset("UserUtil", "Utility", "", false));
+    const auto combined = pm->filterByTag("Utility");
+    CHECK(combined.size() == factoryOnly.size() + 1);   // grows by exactly 1
+    int factoryAfter = 0, userAfter = 0;
+    for (const auto& p : combined)
+        (p.isFactory ? factoryAfter : userAfter)++;
+    CHECK(factoryAfter == factoryCount);           // factory entries untouched
+    CHECK(userAfter == 1);
+}
+
 TEST_CASE_METHOD(Fixture, "filenames are sanitized") {
     REQUIRE(pm->saveUserPreset("A/B: <Test>?", "Utility", "", false));
     auto files = dir.findChildFiles(juce::File::findFiles, false, "*.orbitpreset");

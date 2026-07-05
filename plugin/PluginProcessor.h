@@ -42,8 +42,9 @@ private:
 
     orbit::OrbitEngine engine_;
 
-    // Declared after apvts — the manager's constructor takes a reference to a
-    // fully constructed apvts (member declaration order controls this).
+    // Declared after apvts — the load-bearing effect is DESTRUCTION order:
+    // members are destroyed in reverse declaration order, so the manager's
+    // dtor removes its APVTS parameter listeners while apvts is still alive.
     std::unique_ptr<orbit::PresetManager> presetManager_;
 
     struct TapParamPointers {
