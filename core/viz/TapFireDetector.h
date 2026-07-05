@@ -22,6 +22,10 @@ public:
 
     void prepare(double sampleRate);                    // resets
     void reset();
+    // Ordering contract: prepare() must be called first — it re-floors the
+    // hold (calls setTapDelaySeconds(0)), so any delay set before prepare()
+    // is discarded. Callers must (re)forward the tap delay after every
+    // prepare(). (The engine does this via applyTapTime.)
     void setTapDelaySeconds(float seconds);             // hold = seconds/2, clamped
 
     // Advance one sample. Returns true exactly when a fire event should be

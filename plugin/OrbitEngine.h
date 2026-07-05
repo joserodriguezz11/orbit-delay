@@ -49,6 +49,25 @@ public:
 
     // Visualization feed (observer only — never affects the signal path).
     // Producer side is fed by process(); consumer side is the UI thread.
+    //
+    // Consumer contract (Phase 3 UI):
+    // - Single consumer thread. Once per frame: drain popEvent() until it
+    //   returns false, and call readLevels() once.
+    // - Event timestamps are an absolute sample counter — monotonic across
+    //   reset(), REBASED TO 0 by prepare().
+    // - Snapshot peaks are per-block maxima (a 30 Hz poller sees the latest
+    //   block only); RMS is 50 ms one-pole smoothed.
+    // - Events may drop when the ring is full (newest dropped); animation
+    //   data is disposable by design.
+    //
+    // PHASE 3 PRECONDITIONS (do not wire an editor to this feed before
+    // resolving; see final review in .superpowers/sdd/progress.md):
+    // (a) prepare()/reset() reach VizFeed::prepare()/reset(), which are not
+    //     safe against a concurrently polling reader — suspend UI polling
+    //     around prepareToPlay, or make VizFeed::reset() snapshot-only first.
+    // (b) the feed does not yet expose "now" (the engine's current sample
+    //     counter), which the UI needs to compute event age — add it to
+    //     LevelSnapshot when wiring the editor.
     viz::VizFeed& vizFeed() { return vizFeed_; }
     const viz::VizFeed& vizFeed() const { return vizFeed_; }
 

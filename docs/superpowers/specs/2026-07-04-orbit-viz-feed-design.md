@@ -60,7 +60,11 @@ across channels), a `viz::TapFireDetector`:
   outputs (`outs[]`) and the duck gain: it feeds detectors and level
   accumulators there. Event pushes and the snapshot publish happen once per
   block (fires are queued sample-accurately with the absolute timestamp at
-  which they crossed). No allocation, locks, or logging in the audio path.
+  which they crossed). Clarification: fire events are pushed from the
+  per-sample loop at the moment each intensity window closes
+  (sample-accurate; bounded wait-free work), not batched at block end — the
+  block-end publish applies to the level snapshot only. No allocation,
+  locks, or logging in the audio path.
 - Public accessor: `viz::VizFeed& OrbitEngine::vizFeed()` (and const
   overload). The processor exposes it to the future editor; nothing else
   changes in the plugin layer this wave.
