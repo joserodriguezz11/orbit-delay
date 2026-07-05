@@ -27,3 +27,5 @@ target_include_directories(orbit_tests PRIVATE
 
 include(Catch)
 catch_discover_tests(orbit_tests)
+
+add_subdirectory(preset)
