@@ -19,6 +19,16 @@ void OrbitEngine::prepare(double sampleRate, int maxBlockSize, int numChannels) 
         lowCutFilters_[static_cast<size_t>(ch)].prepare(sampleRate, dsp::OnePole::Mode::HighPass);
         highCutFilters_[static_cast<size_t>(ch)].prepare(sampleRate, dsp::OnePole::Mode::LowPass);
     }
+    vizFeed_.prepare();
+    timeSamples_ = 0;
+    inMs_ = outMs_ = 0.0f;
+    // Same one-pole form the detector uses, at a 50 ms RMS window.
+    msCoef_ = 1.0f - std::exp(-1.0f / (0.05f * static_cast<float>(sampleRate)));
+    // Detectors before tap-time re-application: prepare() floors each hold,
+    // and applyTapTimes() below restores the per-tap hold via
+    // setTapDelaySeconds() (ordering contract from Task 2's review).
+    for (auto& detector : fireDetectors_)
+        detector.prepare(sampleRate);
     applyTapTimes();
     setDryWet(mix_);   // keep gains consistent with mix_ for default-constructed engines
 }
@@ -34,6 +44,10 @@ void OrbitEngine::reset() {
         lowCutFilters_[static_cast<size_t>(ch)].reset();
         highCutFilters_[static_cast<size_t>(ch)].reset();
     }
+    vizFeed_.reset();
+    for (auto& detector : fireDetectors_)
+        detector.reset();
+    inMs_ = outMs_ = 0.0f;
 }
 
 void OrbitEngine::setTap(int index, const TapSettings& settings) {
@@ -46,6 +60,8 @@ void OrbitEngine::setTap(int index, const TapSettings& settings) {
                                           : dsp::DelayLine::ReadMode::Normal);
         line.setPitchSemitones(settings.pitchSemitones);
     }
+    if (!settings.enabled)
+        fireDetectors_[static_cast<size_t>(index)].reset();
     applyTapTime(index);
 }
 
@@ -107,6 +123,9 @@ void OrbitEngine::applyTapTime(int index) {
         : dsp::divisionToSeconds(tap.sync, bpm_);
     for (auto& line : lines_[static_cast<size_t>(index)])
         line.setDelaySeconds(seconds);
+    // Forward here (not just setTap) so prepare()'s tap-time re-application
+    // restores detector holds after the detectors are re-prepared.
+    fireDetectors_[static_cast<size_t>(index)].setTapDelaySeconds(seconds);
 
     // Motion headroom: full depth only when the tap delay leaves room for the
     // max modulation excursion; shorter taps scale depth down proportionally.
@@ -123,6 +142,8 @@ void OrbitEngine::applyTapTimes() {
 
 void OrbitEngine::process(float* const* channelData, int numChannels, int numSamples) {
     const int channels = std::clamp(numChannels, 1, numChannels_);
+    float inBlockPeak = 0.0f, outBlockPeak = 0.0f;   // peaks reset every block
+    float lastDuckGain = 1.0f;
     for (int n = 0; n < numSamples; ++n) {
         float dryLevel = 0.0f;
         for (int ch = 0; ch < channels; ++ch)
@@ -137,6 +158,17 @@ void OrbitEngine::process(float* const* channelData, int numChannels, int numSam
         float wet[kMaxChannels] {};
         for (int ch = 0; ch < channels; ++ch)
             dry[ch] = channelData[ch][n];
+
+        // Viz input stats (observe only): mean of squares -> 50 ms one-pole
+        // RMS accumulator; max |dry| -> block peak.
+        lastDuckGain = duckGain;
+        float inSq = 0.0f;
+        for (int ch = 0; ch < channels; ++ch) {
+            inSq += dry[ch] * dry[ch];
+            inBlockPeak = std::max(inBlockPeak, std::abs(dry[ch]));
+        }
+        inSq /= static_cast<float>(channels);
+        inMs_ += (inSq - inMs_) * msCoef_;
 
         for (int t = 0; t < kNumTaps; ++t) {
             auto& tapLines = lines_[static_cast<size_t>(t)];
@@ -177,6 +209,18 @@ void OrbitEngine::process(float* const* channelData, int numChannels, int numSam
             if (taps_[static_cast<size_t>(t)].enabled)
                 for (int ch = 0; ch < channels; ++ch)
                     wet[ch] += outs[ch];
+
+            // Viz tap-fire detection (observe only): disabled taps feed 0 so
+            // warm-keeping audio can't trigger events.
+            float tapLevel = 0.0f;
+            if (taps_[static_cast<size_t>(t)].enabled)
+                for (int ch = 0; ch < channels; ++ch)
+                    tapLevel = std::max(tapLevel, std::abs(outs[ch]));
+            std::uint64_t fireTime = 0;
+            float intensity = 0.0f;
+            if (fireDetectors_[static_cast<size_t>(t)].processSample(
+                    tapLevel, timeSamples_, fireTime, intensity))
+                vizFeed_.pushEvent({ static_cast<std::uint32_t>(t), fireTime, intensity });
         }
 
         for (int ch = 0; ch < channels; ++ch) {
@@ -201,7 +245,21 @@ void OrbitEngine::process(float* const* channelData, int numChannels, int numSam
 
         for (int ch = 0; ch < channels; ++ch)
             channelData[ch][n] = dry[ch] * dryGain_ + wet[ch] * wetGain_ * duckGain;
+
+        // Viz output stats: read the final samples back AFTER they are written.
+        float outSq = 0.0f;
+        for (int ch = 0; ch < channels; ++ch) {
+            const float out = channelData[ch][n];
+            outSq += out * out;
+            outBlockPeak = std::max(outBlockPeak, std::abs(out));
+        }
+        outSq /= static_cast<float>(channels);
+        outMs_ += (outSq - outMs_) * msCoef_;
+        ++timeSamples_;
     }
+
+    vizFeed_.writeLevels({ std::sqrt(inMs_), inBlockPeak,
+                           std::sqrt(outMs_), outBlockPeak, lastDuckGain });
 }
 
 } // namespace orbit

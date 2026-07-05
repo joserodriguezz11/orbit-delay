@@ -6,6 +6,7 @@
 #include <memory>
 #include <vector>
 #include "OrbitEngine.h"
+#include "viz/VizFeed.h"
 
 using Catch::Approx;
 using orbit::OrbitEngine;
@@ -392,4 +393,64 @@ TEST_CASE("freeze loops the captured audio indefinitely and ignores new input") 
     CHECK(loopEnergyLast == Approx(loopEnergyFirst).epsilon(0.05)); // no decay
     for (int n = 0; n < 1000; ++n)                                  // input doesn't leak into wet
         REQUIRE(quiet[static_cast<size_t>(n)] == Approx(loud[static_cast<size_t>(n)]).margin(1e-4f));
+}
+
+TEST_CASE("viz feed reports tap fires with correct tap index and sane timing") {
+    OrbitEngine engine;
+    engine.prepare(48000.0, 512, 2);
+    TapSettings tap;
+    tap.enabled = true;
+    tap.sync = dsp::SyncDivision::Free;
+    tap.timeSeconds = 4800.0f / 48000.0f;   // 100 ms
+    tap.feedback = 0.0f;
+    engine.setTap(2, tap);                   // tap index 2 on purpose
+    engine.setDryWet(1.0f);
+    engine.setDuckAmount(0.0f);
+    StereoBuffer buf(24000);
+    for (int n = 0; n < 240; ++n)
+        buf.left[static_cast<size_t>(n)] = buf.right[static_cast<size_t>(n)] = 0.8f;
+    engine.process(buf.channels.data(), 2, 24000);
+    orbit::viz::TapFireEvent e;
+    REQUIRE(engine.vizFeed().popEvent(e));
+    CHECK(e.tapIndex == 2u);
+    CHECK(e.timeSamples >= 4800u);           // echo lands at ~100 ms
+    CHECK(e.timeSamples < 5200u);
+    CHECK(e.intensity01 > 0.5f);
+    REQUIRE_FALSE(engine.vizFeed().popEvent(e));  // one echo, one event
+}
+
+TEST_CASE("viz snapshot tracks levels and duck gain") {
+    OrbitEngine engine;
+    engine.prepare(48000.0, 512, 2);
+    TapSettings tap;
+    tap.enabled = true;
+    tap.sync = dsp::SyncDivision::Free;
+    tap.timeSeconds = 0.05f;
+    tap.feedback = 0.5f;
+    engine.setTap(0, tap);
+    engine.setDryWet(0.5f);
+    engine.setDuckAmount(1.0f);              // full ducking
+    StereoBuffer buf(48000);
+    for (int n = 0; n < 48000; ++n)
+        buf.left[static_cast<size_t>(n)] = buf.right[static_cast<size_t>(n)] =
+            0.5f * std::sin(2.0f * 3.14159265f * 220.0f * static_cast<float>(n) / 48000.0f);
+    engine.process(buf.channels.data(), 2, 48000);
+    const auto s = engine.vizFeed().readLevels();
+    CHECK(s.inRms > 0.2f);                   // 0.5-amp sine RMS ~= 0.35
+    CHECK(s.inRms < 0.5f);
+    CHECK(s.inPeak > 0.4f);
+    CHECK(s.outRms > 0.0f);
+    CHECK(s.duckGain < 0.9f);                // loud input + full duck => audible reduction
+}
+
+TEST_CASE("viz feed stays silent for disabled taps and empty input") {
+    OrbitEngine engine;
+    engine.prepare(48000.0, 512, 2);
+    StereoBuffer buf(24000);                  // all zeros, all taps disabled
+    engine.process(buf.channels.data(), 2, 24000);
+    orbit::viz::TapFireEvent e;
+    CHECK_FALSE(engine.vizFeed().popEvent(e));
+    const auto s = engine.vizFeed().readLevels();
+    CHECK(s.inRms == 0.0f);
+    CHECK(s.outPeak == 0.0f);
 }

@@ -1,11 +1,14 @@
 #pragma once
 #include <array>
+#include <cstdint>
 #include "dsp/CharacterStage.h"
 #include "dsp/DelayLine.h"
 #include "dsp/Ducker.h"
 #include "dsp/Lfo.h"
 #include "dsp/OnePole.h"
 #include "dsp/TempoSync.h"
+#include "viz/TapFireDetector.h"
+#include "viz/VizFeed.h"
 
 namespace orbit {
 
@@ -44,6 +47,11 @@ public:
     // In-place processing. channelData must have >= numChannels pointers.
     void process(float* const* channelData, int numChannels, int numSamples);
 
+    // Visualization feed (observer only — never affects the signal path).
+    // Producer side is fed by process(); consumer side is the UI thread.
+    viz::VizFeed& vizFeed() { return vizFeed_; }
+    const viz::VizFeed& vizFeed() const { return vizFeed_; }
+
 private:
     void applyTapTime(int index);
     void applyTapTimes();
@@ -70,6 +78,12 @@ private:
     double bpm_ = 120.0;
     double sampleRate_ = 44100.0;
     int numChannels_ = kMaxChannels;
+
+    // Viz observers (no effect on audio).
+    viz::VizFeed vizFeed_;
+    std::array<viz::TapFireDetector, kNumTaps> fireDetectors_ {};
+    std::uint64_t timeSamples_ = 0;
+    float inMs_ = 0.0f, outMs_ = 0.0f, msCoef_ = 0.0f;  // 50 ms one-pole mean-square
 };
 
 } // namespace orbit
