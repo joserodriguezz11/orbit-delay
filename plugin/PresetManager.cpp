@@ -19,11 +19,23 @@ juce::String factoryResourceText(int index) {
     return data == nullptr ? juce::String() : juce::String::fromUTF8(data, size);
 }
 
+// Cosmetic fallback display name when PresetMeta is absent: strip a leading
+// "NN_" digit prefix (the factory filename convention) and de-underscore.
+juce::String fallbackNameFromStem(const juce::String& stem) {
+    auto s = stem;
+    int digits = 0;
+    while (digits < s.length() && juce::CharacterFunctions::isDigit(s[digits]))
+        ++digits;
+    if (digits > 0 && digits < s.length() && s[digits] == '_')
+        s = s.substring(digits + 1);
+    return s.replaceCharacter('_', ' ');
+}
+
 PresetInfo makeUserInfo(const juce::File& file) {
     PresetInfo info;
     info.isFactory = false;
     info.file = file;
-    info.name = file.getFileNameWithoutExtension();
+    info.name = fallbackNameFromStem(file.getFileNameWithoutExtension());
     if (const auto xml = juce::parseXML(file)) {
         if (const auto* meta = xml->getChildByName(kMetaNodeName)) {
             info.name        = meta->getStringAttribute("name", info.name);
@@ -68,8 +80,8 @@ PresetManager::PresetManager(juce::AudioProcessorValueTreeState& apvts,
         PresetInfo info;
         info.isFactory = true;
         info.binaryDataIndex = i;
-        info.name = original.dropLastCharacters(
-            static_cast<int>(juce::String(kPresetExtension).length()));
+        info.name = fallbackNameFromStem(original.dropLastCharacters(
+            static_cast<int>(juce::String(kPresetExtension).length())));
         if (const auto xml = juce::parseXML(factoryResourceText(i)))
             if (const auto* meta = xml->getChildByName(kMetaNodeName)) {
                 info.name        = meta->getStringAttribute("name", info.name);
@@ -105,6 +117,14 @@ juce::Array<PresetInfo> PresetManager::userPresets() const {
              juce::File::findFiles, false, juce::String("*") + kPresetExtension))
         out.add(makeUserInfo(f));
     return out;
+}
+
+const juce::StringArray& PresetManager::tagVocabulary() {
+    // Single source of truth for the fixed tag set (spec §1) — Phase-3 filter
+    // buttons and save-time enforcement both read from here.
+    static const juce::StringArray vocab { "Vocals", "Drums", "Ambient",
+                                           "Dub", "Lo-fi", "Utility" };
+    return vocab;
 }
 
 juce::Array<PresetInfo> PresetManager::filterByTag(const juce::String& tag) const {
@@ -146,18 +166,23 @@ bool PresetManager::isModified() const { return modified_.load(std::memory_order
 
 bool PresetManager::saveUserPreset(const juce::String& name, const juce::String& tags,
                                    const juce::String& description, bool overwrite) {
+    // One effective display name for filename, PresetMeta and bookkeeping —
+    // sanitizeName falls back to "Preset" for empty input, so the metadata
+    // must fall back with it or the three would disagree.
+    const auto effectiveName = name.trim().isEmpty() ? juce::String("Preset") : name;
+
     const auto dir = presetDir();
     dir.createDirectory();   // created on demand
-    const auto file = dir.getChildFile(sanitizeName(name) + kPresetExtension);
+    const auto file = dir.getChildFile(sanitizeName(effectiveName) + kPresetExtension);
     if (file.existsAsFile() && !overwrite)
         return false;
 
-    const auto state = stateWithMeta(name, tags, description);
+    const auto state = stateWithMeta(effectiveName, tags, description);
     const auto xml = state.createXml();
     if (xml == nullptr || !file.replaceWithText(xml->toString(juce::XmlElement::TextFormat())))
         return false;
 
-    currentPresetName_ = name;
+    currentPresetName_ = effectiveName;
     modified_.store(false, std::memory_order_relaxed);   // save clears the dirty flag
     return true;
 }
@@ -185,7 +210,13 @@ bool PresetManager::renameUserPreset(const PresetInfo& info, const juce::String&
 
     if (!target.replaceWithText(xml->toString(juce::XmlElement::TextFormat())))
         return false;
-    info.file.deleteFile();
+    if (!info.file.deleteFile()) {
+        // Old file is locked/undeletable: roll back the just-written target so
+        // the rename nets zero new files instead of a silent duplicate. All
+        // bookkeeping (currentPresetName_, dirty flag) stays untouched.
+        target.deleteFile();
+        return false;
+    }
     if (currentPresetName_ == info.name)
         currentPresetName_ = newName;
     return true;

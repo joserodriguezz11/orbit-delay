@@ -14,16 +14,13 @@ add_executable(orbit_tests
     core/CharacterStageTests.cpp
     core/VizFeedTests.cpp
     core/TapFireDetectorTests.cpp
-    plugin/OrbitEngineTests.cpp
-    ${CMAKE_SOURCE_DIR}/plugin/OrbitEngine.cpp)
+    plugin/OrbitEngineTests.cpp)
 
+# orbit_engine (JUCE-free) provides OrbitEngine.cpp, the plugin/ and core/
+# include dirs, and orbit_core transitively.
 target_link_libraries(orbit_tests PRIVATE
-    orbit_core
+    orbit_engine
     Catch2::Catch2WithMain)
-
-target_include_directories(orbit_tests PRIVATE
-    ${CMAKE_SOURCE_DIR}/core
-    ${CMAKE_SOURCE_DIR}/plugin)
 
 include(Catch)
 catch_discover_tests(orbit_tests)

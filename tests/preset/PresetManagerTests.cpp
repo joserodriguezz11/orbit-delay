@@ -1,5 +1,6 @@
 #include <catch2/catch_test_macros.hpp>
 #include <catch2/catch_approx.hpp>
+#include <cstdlib>
 #include "TestProcessor.h"
 #include "PresetManager.h"
 
@@ -135,10 +136,29 @@ TEST_CASE_METHOD(Fixture, "A/B: edits survive a round trip") {
 
 TEST_CASE_METHOD(Fixture, "copyAB clones live over inactive and keeps live untouched") {
     set("mix_width", 1.8f);
+    REQUIRE(pm->isModified());                     // dirty starting state
     pm->copyAB();                                  // B := A
     CHECK(get("mix_width") == Approx(1.8f));       // live unchanged
+    CHECK(pm->isModified());                       // dirty flag untouched (stays dirty)
+    CHECK(pm->currentPresetName() == juce::String());   // name untouched
+    CHECK_FALSE(pm->isSlotB());                    // active slot untouched
     pm->toggleAB();                                // -> B
     CHECK(get("mix_width") == Approx(1.8f));       // clone applied
+}
+
+TEST_CASE_METHOD(Fixture, "copyAB from a clean state leaves flag, name and slot untouched") {
+    REQUIRE(pm->saveUserPreset("CleanBase", "Utility", "", false));
+    REQUIRE_FALSE(pm->isModified());               // clean starting state
+    pm->copyAB();                                  // inactive := live
+    CHECK_FALSE(pm->isModified());                 // stays clean
+    CHECK(pm->currentPresetName() == "CleanBase"); // name untouched
+    CHECK_FALSE(pm->isSlotB());                    // active slot untouched
+
+    pm->toggleAB();                                // -> B (sets modified by contract)
+    REQUIRE(pm->isSlotB());
+    pm->copyAB();                                  // A := live, from slot B
+    CHECK(pm->isSlotB());                          // active slot still untouched
+    CHECK(pm->currentPresetName() == "CleanBase");
 }
 
 TEST_CASE_METHOD(Fixture, "toggleAB sets modified and keeps preset name") {
@@ -147,6 +167,114 @@ TEST_CASE_METHOD(Fixture, "toggleAB sets modified and keeps preset name") {
     pm->toggleAB();
     CHECK(pm->isModified());
     CHECK(pm->currentPresetName() == "Named");
+}
+
+TEST_CASE_METHOD(Fixture, "A/B slots never leak into serialized state (tripwire)") {
+    // TestProcessor's getStateInformation is a stub owned by another rig, so
+    // this asserts the apvts state-equivalence the real processor serializes:
+    // the same copyState() + product/stateVersion envelope + writeToStream
+    // that OrbitAudioProcessor::getStateInformation performs.
+    auto serialize = [this] {
+        auto state = proc.apvts.copyState();
+        state.setProperty("product", "orbit", nullptr);
+        state.setProperty("stateVersion", 1, nullptr);
+        juce::MemoryBlock mb;
+        juce::MemoryOutputStream stream(mb, false);
+        state.writeToStream(stream);
+        return mb;
+    };
+
+    const float fbDefault = get("tap1_feedback");
+    set("mix_width", 1.7f);
+    const auto before = serialize();
+
+    // Scribble on both slots without net-changing the live parameter state.
+    pm->copyAB();                    // inactive := live
+    pm->toggleAB();                  // -> B (holds the values just copied)
+    set("tap1_feedback", 0.9f);      // divergent state now lives in slot B
+    pm->toggleAB();                  // -> back to A; B keeps the 0.9 edit
+    REQUIRE_FALSE(pm->isSlotB());
+    REQUIRE(get("tap1_feedback") == Approx(fbDefault));   // live state restored
+
+    const auto after = serialize();
+    const auto treeBefore = juce::ValueTree::readFromData(before.getData(), before.getSize());
+    const auto treeAfter  = juce::ValueTree::readFromData(after.getData(), after.getSize());
+    REQUIRE(treeBefore.isValid());
+    REQUIRE(treeAfter.isValid());
+    CHECK(treeAfter.isEquivalentTo(treeBefore));   // slot mutations invisible
+
+    // Parameter-only tree: no slot / meta children may ever appear.
+    for (int i = 0; i < treeAfter.getNumChildren(); ++i)
+        CHECK(treeAfter.getChild(i).hasType("PARAM"));
+
+    // Restore path (mirrors setStateInformation): outcome is independent of
+    // whatever the slots hold at restore time.
+    set("mix_width", 0.4f);
+    proc.apvts.replaceState(juce::ValueTree::readFromData(before.getData(), before.getSize()));
+    CHECK(get("mix_width") == Approx(1.7f));
+    CHECK(get("tap1_feedback") == Approx(fbDefault));
+}
+
+//==============================================================================
+// User-preset file lifecycle hardening
+
+TEST_CASE_METHOD(Fixture, "rename success leaves exactly one file and updates bookkeeping") {
+    REQUIRE(pm->saveUserPreset("OldName", "Utility", "", false));
+    auto users = pm->userPresets();
+    REQUIRE(users.size() == 1);
+    REQUIRE(pm->renameUserPreset(users[0], "NewName"));
+    auto files = dir.findChildFiles(juce::File::findFiles, false, "*.orbitpreset");
+    REQUIRE(files.size() == 1);                    // old file gone, no duplicate
+    CHECK(files[0].getFileNameWithoutExtension() == "NewName");
+    CHECK(pm->currentPresetName() == "NewName");   // current-name follows rename
+}
+
+#if JUCE_MAC
+TEST_CASE_METHOD(Fixture, "rename rolls back when the old file cannot be deleted") {
+    REQUIRE(pm->saveUserPreset("LockedSrc", "Utility", "", false));
+    auto users = pm->userPresets();
+    REQUIRE(users.size() == 1);
+    const auto srcPath = users[0].file.getFullPathName();
+    // uchg makes the source undeletable (unlink -> EPERM) but still readable.
+    REQUIRE(std::system(("chflags uchg \"" + srcPath + "\"").toRawUTF8()) == 0);
+    const bool renamed = pm->renameUserPreset(users[0], "Renamed");
+    std::system(("chflags nouchg \"" + srcPath + "\"").toRawUTF8());   // allow cleanup
+    CHECK_FALSE(renamed);
+    auto files = dir.findChildFiles(juce::File::findFiles, false, "*.orbitpreset");
+    REQUIRE(files.size() == 1);                    // zero net new files (target rolled back)
+    CHECK(files[0].getFileNameWithoutExtension() == "LockedSrc");
+    CHECK(pm->currentPresetName() == "LockedSrc"); // bookkeeping untouched on failure
+}
+#endif
+
+TEST_CASE_METHOD(Fixture, "empty save name falls back to 'Preset' consistently") {
+    REQUIRE(pm->saveUserPreset("   ", "Utility", "", false));
+    CHECK(pm->currentPresetName() == "Preset");
+    const auto users = pm->userPresets();
+    REQUIRE(users.size() == 1);
+    CHECK(users[0].name == "Preset");              // meta name matches, not ""
+    CHECK(users[0].file.getFileNameWithoutExtension() == "Preset");
+    CHECK_FALSE(pm->isModified());                 // save still clears the flag
+}
+
+TEST_CASE("tagVocabulary is the fixed six-tag list, in order") {
+    const auto& vocab = orbit::PresetManager::tagVocabulary();
+    REQUIRE(vocab.size() == 6);
+    CHECK(vocab[0] == "Vocals");
+    CHECK(vocab[1] == "Drums");
+    CHECK(vocab[2] == "Ambient");
+    CHECK(vocab[3] == "Dub");
+    CHECK(vocab[4] == "Lo-fi");
+    CHECK(vocab[5] == "Utility");
+    CHECK(&vocab == &orbit::PresetManager::tagVocabulary());   // stable single instance
+}
+
+TEST_CASE_METHOD(Fixture, "meta-less file with NN_ prefix gets a cleaned fallback name") {
+    dir.getChildFile("07_Dub_Tape Echo.orbitpreset")
+       .replaceWithText("<PARAMS product=\"orbit\" stateVersion=\"1\"/>");
+    const auto users = pm->userPresets();
+    REQUIRE(users.size() == 1);
+    CHECK(users[0].name == "Dub Tape Echo");       // "07_" stripped, de-underscored
 }
 
 //==============================================================================
@@ -158,7 +286,7 @@ TEST_CASE_METHOD(Fixture, "factory set: 40 presets, unique names, valid tags, or
     const auto& f = pm->factoryPresets();
     REQUIRE(f.size() == 40);
     juce::StringArray names;
-    const juce::StringArray vocab { "Vocals", "Drums", "Ambient", "Dub", "Lo-fi", "Utility" };
+    const auto& vocab = orbit::PresetManager::tagVocabulary();   // single source of truth
     for (auto& p : f) {
         CHECK(p.isFactory);
         CHECK(p.name.isNotEmpty());

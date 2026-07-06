@@ -1,4 +1,5 @@
 #include "dsp/OnePole.h"
+#include "dsp/Constants.h"
 #include <algorithm>
 #include <cmath>
 
@@ -15,7 +16,7 @@ void OnePole::reset() { state_ = 0.0f; }
 void OnePole::setCutoff(float hz) {
     const float maxHz = static_cast<float>(0.45 * sampleRate_);
     hz = std::clamp(hz, 1.0f, maxHz);
-    coef_ = 1.0f - std::exp(static_cast<float>(-2.0 * 3.14159265358979323846 * hz / sampleRate_));
+    coef_ = 1.0f - std::exp(static_cast<float>(-2.0 * kPi * hz / sampleRate_));
 }
 
 float OnePole::processSample(float input) {

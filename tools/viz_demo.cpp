@@ -20,6 +20,7 @@
 #include <vector>
 
 #include "OrbitEngine.h"
+#include "dsp/Constants.h"
 
 namespace {
 
@@ -42,11 +43,13 @@ std::string meterBar(float rms, float peak) {
         std::clamp(rms, 0.0f, 1.0f) * static_cast<float>(kMeterWidth)));
     for (int i = 0; i < rmsCells; ++i)
         bar[static_cast<std::size_t>(i)] = '#';
-    const int peakCell = std::clamp(
-        static_cast<int>(std::lround(std::clamp(peak, 0.0f, 1.0f)
-                                     * static_cast<float>(kMeterWidth))) - 1,
-        0, kMeterWidth - 1);
-    bar[static_cast<std::size_t>(peakCell)] = '|';
+    if (peak > 0.0f) {   // no marker at silence — clamping 0 would draw at cell 0
+        const int peakCell = std::clamp(
+            static_cast<int>(std::lround(std::clamp(peak, 0.0f, 1.0f)
+                                         * static_cast<float>(kMeterWidth))) - 1,
+            0, kMeterWidth - 1);
+        bar[static_cast<std::size_t>(peakCell)] = '|';
+    }
     return bar;
 }
 
@@ -107,7 +110,7 @@ int main() {
             const int second = block / kBlocksPerSecond;
             const float amp = (second % 2 == 0) ? 0.9f : 0.5f;
             for (int i = 0; i < kBurstSamples; ++i) {
-                const double phase = 2.0 * M_PI * kBurstFreqHz
+                const double phase = 2.0 * orbit::dsp::kPi * kBurstFreqHz
                                      * static_cast<double>(i) / kSampleRate;
                 const float sample = amp * static_cast<float>(std::sin(phase));
                 left[static_cast<std::size_t>(i)] = sample;

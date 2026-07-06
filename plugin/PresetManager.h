@@ -47,10 +47,14 @@ public:
     // file contents). Empty string if the preset cannot be resolved.
     juce::String presetXmlFor(const PresetInfo&) const;
 
+    // Fixed tag vocabulary (spec §1): { Vocals, Drums, Ambient, Dub, Lo-fi,
+    // Utility }. Single source of truth for the Phase-3 filter buttons and
+    // save-time tag enforcement.
+    static const juce::StringArray& tagVocabulary();
+
     // User presets
-    // Tag vocabulary {Vocals, Drums, Ambient, Dub, Lo-fi, Utility} is enforced
-    // by the Phase 3 UI, not here — tags are stored verbatim and matching
-    // (filterByTag) is case-sensitive.
+    // The tagVocabulary() set is enforced by the Phase 3 UI, not here — tags
+    // are stored verbatim and matching (filterByTag) is case-sensitive.
     bool saveUserPreset(const juce::String& name, const juce::String& tags,
                         const juce::String& description, bool overwrite);
         // false if exists && !overwrite, or unwritable; filename sanitized
@@ -96,6 +100,10 @@ private:
     std::atomic<bool> suppressDirty_ { false };   // guards listener during load/save
 
     // A/B slots hold parameter-only trees (no PresetMeta ever, spec §3).
+    // TRIPWIRE: slots are session-local and NEVER serialized (spec §3) — DAW
+    // state save/restore is independent of their contents by design. If slots
+    // ever become part of serialized state, setStateInformation must refresh
+    // them after replaceState (see the matching note in PluginProcessor.cpp).
     juce::ValueTree slotA_, slotB_;
     bool slotBActive_ = false;
 

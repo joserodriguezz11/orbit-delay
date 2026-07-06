@@ -1,13 +1,8 @@
 # viz-demo — terminal readout of the visualization feed. No JUCE: links the
-# engine exactly like orbit_tests does (orbit_core + OrbitEngine.cpp), minus Catch2.
-add_executable(viz-demo
-    viz_demo.cpp
-    ${CMAKE_SOURCE_DIR}/plugin/OrbitEngine.cpp)
+# engine exactly like orbit_tests does (orbit_engine, JUCE-free), minus Catch2.
+# orbit_engine supplies the plugin/ and core/ include dirs and orbit_core.
+add_executable(viz-demo viz_demo.cpp)
 
 set_target_properties(viz-demo PROPERTIES OUTPUT_NAME viz_demo)
 
-target_link_libraries(viz-demo PRIVATE orbit_core)
-
-target_include_directories(viz-demo PRIVATE
-    ${CMAKE_SOURCE_DIR}/core
-    ${CMAKE_SOURCE_DIR}/plugin)
+target_link_libraries(viz-demo PRIVATE orbit_engine)
