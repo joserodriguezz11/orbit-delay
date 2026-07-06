@@ -11,6 +11,11 @@ namespace orbit::viz {
 // during the measuring window, clamped to [0,1]; emitted fireTime = the
 // crossing sample. Envelope at the crossing is ~= the threshold, which is
 // why intensity is measured over the window instead.
+//
+// Accepted quirk: reset() while a hold is in flight (e.g. the engine resets
+// the detector when its tap is disabled) re-arms immediately, so a
+// disable/enable mid-hold can double-fire on a repeat the hold would have
+// swallowed. Fine for an animation-only feed — not worth extra state.
 class TapFireDetector {
 public:
     static constexpr float kThreshold = 0.01f;          // -40 dB

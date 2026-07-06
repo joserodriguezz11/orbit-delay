@@ -1,4 +1,5 @@
 #include "dsp/Lfo.h"
+#include "dsp/Constants.h"
 #include <algorithm>
 #include <cmath>
 
@@ -18,7 +19,7 @@ void Lfo::setRate(float hz) {
 
 float Lfo::processSample() {
     const float value =
-        static_cast<float>(std::sin(2.0 * 3.14159265358979323846 * phase_));
+        static_cast<float>(std::sin(2.0 * kPi * phase_));
     phase_ += increment_;
     if (phase_ >= 1.0)
         phase_ -= 1.0;

@@ -443,6 +443,72 @@ TEST_CASE("viz snapshot tracks levels and duck gain") {
     CHECK(s.duckGain < 0.9f);                // loud input + full duck => audible reduction
 }
 
+TEST_CASE("viz snapshot publishes the engine sample counter as now") {
+    OrbitEngine engine;
+    engine.prepare(48000.0, 512, 2);
+    TapSettings tap;
+    tap.enabled = true;
+    tap.sync = dsp::SyncDivision::Free;
+    tap.timeSeconds = 4800.0f / 48000.0f;    // 100 ms
+    tap.feedback = 0.0f;
+    engine.setTap(0, tap);
+    engine.setDryWet(1.0f);
+    engine.setDuckAmount(0.0f);
+    StereoBuffer buf(24000);
+    for (int n = 0; n < 240; ++n)
+        buf.left[static_cast<size_t>(n)] = buf.right[static_cast<size_t>(n)] = 0.8f;
+    engine.process(buf.channels.data(), 2, 24000);
+    CHECK(engine.vizFeed().readLevels().now == 24000u);   // now == samples processed
+
+    orbit::viz::TapFireEvent e;
+    REQUIRE(engine.vizFeed().popEvent(e));
+    CHECK(engine.vizFeed().readLevels().now >= e.timeSamples);  // events never post-date now
+
+    // now is monotonic across reset() — only prepare() rebases it to 0.
+    engine.reset();
+    StereoBuffer more(512);
+    engine.process(more.channels.data(), 2, 512);
+    CHECK(engine.vizFeed().readLevels().now == 24512u);
+
+    engine.prepare(48000.0, 512, 2);
+    StereoBuffer few(10);
+    engine.process(few.channels.data(), 2, 10);
+    CHECK(engine.vizFeed().readLevels().now == 10u);
+}
+
+TEST_CASE("zero-length process() leaves the prior snapshot intact and fires nothing") {
+    OrbitEngine engine;
+    engine.prepare(48000.0, 512, 2);
+    TapSettings tap;
+    tap.enabled = true;
+    tap.sync = dsp::SyncDivision::Free;
+    tap.timeSeconds = 100.0f / 48000.0f;
+    tap.feedback = 0.0f;
+    engine.setTap(0, tap);
+    engine.setDryWet(0.5f);
+    engine.setDuckAmount(1.0f);
+    StereoBuffer buf(4800);
+    for (int n = 0; n < 4800; ++n)
+        buf.left[static_cast<size_t>(n)] = buf.right[static_cast<size_t>(n)] =
+            0.5f * std::sin(2.0f * 3.14159265f * 220.0f * static_cast<float>(n) / 48000.0f);
+    engine.process(buf.channels.data(), 2, 4800);
+    orbit::viz::TapFireEvent e;
+    while (engine.vizFeed().popEvent(e)) {}              // drain any fires
+    const auto before = engine.vizFeed().readLevels();
+    REQUIRE(before.inPeak > 0.0f);                       // there is a snapshot to clobber
+    REQUIRE(before.now == 4800u);
+
+    engine.process(buf.channels.data(), 2, 0);           // empty block
+    const auto after = engine.vizFeed().readLevels();
+    CHECK(after.inRms == before.inRms);                  // snapshot untouched
+    CHECK(after.inPeak == before.inPeak);
+    CHECK(after.outRms == before.outRms);
+    CHECK(after.outPeak == before.outPeak);
+    CHECK(after.duckGain == before.duckGain);
+    CHECK(after.now == before.now);                      // now did not advance
+    CHECK_FALSE(engine.vizFeed().popEvent(e));           // nothing fired
+}
+
 TEST_CASE("viz feed stays silent for disabled taps and empty input") {
     OrbitEngine engine;
     engine.prepare(48000.0, 512, 2);

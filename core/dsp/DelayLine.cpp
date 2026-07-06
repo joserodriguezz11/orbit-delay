@@ -161,7 +161,11 @@ void DelayLine::writeAndAdvance(float value) {
             reverseCounter_ = 0;
     } else if (pitchRatio_ != 1.0) {
         grainPhase_ += (1.0 - pitchRatio_) / pitchWindowSamples_;
-        grainPhase_ -= std::floor(grainPhase_);   // wrap into [0, 1) either direction
+        // Wrap into [0, 1) for either delta direction. On a negative delta the
+        // floor-wrap can transiently land exactly on 1.0 (e.g. -eps -> 1.0 - eps
+        // rounding up); that's harmless — readAt clamps, and the next advance
+        // re-wraps it into range.
+        grainPhase_ -= std::floor(grainPhase_);
     }
     // Flush denormal-range and non-finite values to hard zero so feedback
     // tails die cleanly and a bad input sample can't poison the line.

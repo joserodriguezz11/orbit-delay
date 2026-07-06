@@ -80,6 +80,11 @@ void OrbitAudioProcessor::processBlock(juce::AudioBuffer<float>& buffer, juce::M
 
 void OrbitAudioProcessor::getStateInformation(juce::MemoryBlock& destData) {
     // Family-wide versioned state envelope (spec §4 product-family rules).
+    // TRIPWIRE: PresetManager's A/B slots are session-local and deliberately
+    // NOT serialized here (preset spec §3) — this state is parameter-only.
+    // If slots ever become part of serialized state, setStateInformation must
+    // refresh them after replaceState (see the note on the slot members in
+    // PresetManager.h), or a restored session would revive stale slots.
     auto state = apvts.copyState();
     state.setProperty("product", "orbit", nullptr);
     state.setProperty("stateVersion", 1, nullptr);

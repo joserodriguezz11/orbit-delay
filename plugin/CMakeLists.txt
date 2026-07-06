@@ -1,3 +1,13 @@
+# orbit_engine — the JUCE-free engine core, compiled once and linked by every
+# consumer (OrbitDelay plugin, orbit_tests, viz-demo) instead of each target
+# recompiling OrbitEngine.cpp. CONTRACT: this target must never link or include
+# JUCE — orbit_tests and viz-demo stay JUCE-free through it.
+add_library(orbit_engine STATIC OrbitEngine.cpp)
+target_include_directories(orbit_engine PUBLIC
+    ${CMAKE_CURRENT_SOURCE_DIR}
+    ${CMAKE_SOURCE_DIR}/core)
+target_link_libraries(orbit_engine PUBLIC orbit_core)
+
 # Factory presets embedded as binary data. Enumeration in PresetManager uses
 # BinaryData::namedResourceList + getNamedResourceOriginalFilename, so the
 # mangled symbol names never need to be spelled out.
@@ -24,7 +34,6 @@ juce_add_plugin(OrbitDelay
 
 target_sources(OrbitDelay PRIVATE
     PluginProcessor.cpp
-    OrbitEngine.cpp
     Parameters.cpp
     PresetManager.cpp)
 
@@ -36,6 +45,7 @@ target_compile_definitions(OrbitDelay PUBLIC
 target_link_libraries(OrbitDelay
     PRIVATE
         orbit_core
+        orbit_engine
         OrbitPresetData
         juce::juce_audio_utils
     PUBLIC

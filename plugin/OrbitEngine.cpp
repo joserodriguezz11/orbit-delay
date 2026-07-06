@@ -60,6 +60,10 @@ void OrbitEngine::setTap(int index, const TapSettings& settings) {
                                           : dsp::DelayLine::ReadMode::Normal);
         line.setPitchSemitones(settings.pitchSemitones);
     }
+    // Accepted quirk (animation-only feed): resetting the detector on disable
+    // means a re-enable mid-hold re-arms immediately, so a repeat that the
+    // hold would normally swallow can fire a second event. Harmless for viz;
+    // preferable to stale hold state suppressing the first real fire.
     if (!settings.enabled)
         fireDetectors_[static_cast<size_t>(index)].reset();
     applyTapTime(index);
@@ -141,6 +145,11 @@ void OrbitEngine::applyTapTimes() {
 }
 
 void OrbitEngine::process(float* const* channelData, int numChannels, int numSamples) {
+    // Empty block: return before the block-end writeLevels so it cannot
+    // overwrite the last good snapshot with zeroed peaks / a stale duck gain,
+    // or publish a spurious "now". (Guard, not a DSP change.)
+    if (numSamples <= 0)
+        return;
     const int channels = std::clamp(numChannels, 1, numChannels_);
     float inBlockPeak = 0.0f, outBlockPeak = 0.0f;   // peaks reset every block
     float lastDuckGain = 1.0f;
@@ -205,17 +214,19 @@ void OrbitEngine::process(float* const* channelData, int numChannels, int numSam
                 }
             }
             // Disabled taps keep processing (buffers stay warm -> no clicks
-            // on re-enable) but don't contribute to the mix.
-            if (taps_[static_cast<size_t>(t)].enabled)
-                for (int ch = 0; ch < channels; ++ch)
-                    wet[ch] += outs[ch];
-
-            // Viz tap-fire detection (observe only): disabled taps feed 0 so
-            // warm-keeping audio can't trigger events.
+            // on re-enable) but don't contribute to the mix, and feed the
+            // fire detector 0 (below) so warm-keeping audio can't trigger
+            // viz events. Fused loop: wet accumulation order and the
+            // tapLevel max-reduction are unchanged (bit-identical).
             float tapLevel = 0.0f;
-            if (taps_[static_cast<size_t>(t)].enabled)
-                for (int ch = 0; ch < channels; ++ch)
+            if (taps_[static_cast<size_t>(t)].enabled) {
+                for (int ch = 0; ch < channels; ++ch) {
+                    wet[ch] += outs[ch];
                     tapLevel = std::max(tapLevel, std::abs(outs[ch]));
+                }
+            }
+
+            // Viz tap-fire detection (observe only).
             std::uint64_t fireTime = 0;
             float intensity = 0.0f;
             if (fireDetectors_[static_cast<size_t>(t)].processSample(
@@ -258,8 +269,12 @@ void OrbitEngine::process(float* const* channelData, int numChannels, int numSam
         ++timeSamples_;
     }
 
+    // timeSamples_ (post-loop) rides along as "now" so the UI can compute
+    // event age. It is rebased to 0 only by prepare(); reset() leaves it
+    // running, so "now" is monotonic across reset() like event timestamps.
     vizFeed_.writeLevels({ std::sqrt(inMs_), inBlockPeak,
-                           std::sqrt(outMs_), outBlockPeak, lastDuckGain });
+                           std::sqrt(outMs_), outBlockPeak, lastDuckGain,
+                           timeSamples_ });
 }
 
 } // namespace orbit

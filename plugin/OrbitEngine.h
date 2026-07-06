@@ -53,21 +53,29 @@ public:
     // Consumer contract (Phase 3 UI):
     // - Single consumer thread. Once per frame: drain popEvent() until it
     //   returns false, and call readLevels() once.
-    // - Event timestamps are an absolute sample counter — monotonic across
-    //   reset(), REBASED TO 0 by prepare().
+    // - Event timestamps and LevelSnapshot::now are the same absolute sample
+    //   counter — monotonic across reset(), REBASED TO 0 by prepare().
+    //   Event age = now - event.timeSamples.
+    // - reset() is snapshot-only: it re-publishes a zero snapshot (duckGain 1,
+    //   now 0 — a one-block transient until the next process() republishes
+    //   the true counter) and leaves queued events poppable.
+    // - Stale-epoch events: re-prepare keeps queued events while prepare()
+    //   rebases the sample counter to 0, so events queued before a
+    //   prepareToPlay can carry old-epoch timestamps where
+    //   now - event.timeSamples underflows uint64 — the UI consumer must
+    //   discard events with timeSamples > now.
     // - Snapshot peaks are per-block maxima (a 30 Hz poller sees the latest
     //   block only); RMS is 50 ms one-pole smoothed.
     // - Events may drop when the ring is full (newest dropped); animation
     //   data is disposable by design.
     //
-    // PHASE 3 PRECONDITIONS (do not wire an editor to this feed before
-    // resolving; see final review in .superpowers/sdd/progress.md):
-    // (a) prepare()/reset() reach VizFeed::prepare()/reset(), which are not
-    //     safe against a concurrently polling reader — suspend UI polling
-    //     around prepareToPlay, or make VizFeed::reset() snapshot-only first.
-    // (b) the feed does not yet expose "now" (the engine's current sample
-    //     counter), which the UI needs to compute event age — add it to
-    //     LevelSnapshot when wiring the editor.
+    // PHASE 3 PRECONDITIONS (see final review in .superpowers/sdd/progress.md):
+    // (a) RESOLVED — VizFeed::reset() is snapshot-only and reader-safe (uses
+    //     the writeLevels seqlock; never touches head_/tail_), and
+    //     VizFeed::prepare() allocates only on first call, so engine
+    //     prepare()/reset() are safe against a concurrently polling reader.
+    // (b) RESOLVED — LevelSnapshot::now carries the engine sample counter
+    //     (published at block end), so the UI can compute event age.
     viz::VizFeed& vizFeed() { return vizFeed_; }
     const viz::VizFeed& vizFeed() const { return vizFeed_; }
 
