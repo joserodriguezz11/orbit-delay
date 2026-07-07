@@ -1,4 +1,5 @@
 #include "PluginProcessor.h"
+#include "gui/OrbitEditor.h"
 
 namespace params = orbit::params;
 
@@ -103,6 +104,12 @@ void OrbitAudioProcessor::setStateInformation(const void* data, int sizeInBytes)
     const int loadedVersion = static_cast<int>(tree.getProperty("stateVersion", 1));
     juce::ignoreUnused(loadedVersion);
     apvts.replaceState(tree);
+}
+
+// Out-of-line so PluginProcessor.h never includes OrbitEditor.h (which
+// includes PluginProcessor.h back).
+juce::AudioProcessorEditor* OrbitAudioProcessor::createEditor() {
+    return new OrbitEditor(*this);
 }
 
 juce::AudioProcessor* JUCE_CALLTYPE createPluginFilter() {

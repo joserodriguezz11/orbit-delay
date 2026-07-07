@@ -12,7 +12,9 @@
 add_executable(orbit_gui_tests
     OrbitThemeTests.cpp
     ProcessorAccessorTests.cpp
+    OrbitEditorTests.cpp
     ${CMAKE_SOURCE_DIR}/plugin/PluginProcessor.cpp
+    ${CMAKE_SOURCE_DIR}/plugin/gui/OrbitEditor.cpp
     ${CMAKE_SOURCE_DIR}/plugin/Parameters.cpp
     ${CMAKE_SOURCE_DIR}/plugin/PresetManager.cpp)
 

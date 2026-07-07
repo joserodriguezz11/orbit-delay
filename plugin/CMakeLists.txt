@@ -35,7 +35,8 @@ juce_add_plugin(OrbitDelay
 target_sources(OrbitDelay PRIVATE
     PluginProcessor.cpp
     Parameters.cpp
-    PresetManager.cpp)
+    PresetManager.cpp
+    gui/OrbitEditor.cpp)
 
 target_compile_definitions(OrbitDelay PUBLIC
     JUCE_WEB_BROWSER=0
