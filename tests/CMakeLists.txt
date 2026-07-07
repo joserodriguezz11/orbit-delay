@@ -26,3 +26,4 @@ include(Catch)
 catch_discover_tests(orbit_tests)
 
 add_subdirectory(preset)
+add_subdirectory(gui)
