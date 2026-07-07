@@ -122,8 +122,8 @@ juce::Array<PresetInfo> PresetManager::userPresets() const {
 const juce::StringArray& PresetManager::tagVocabulary() {
     // Single source of truth for the fixed tag set (spec §1) — Phase-3 filter
     // buttons and save-time enforcement both read from here.
-    static const juce::StringArray vocab { "Vocals", "Drums", "Ambient",
-                                           "Dub", "Lo-fi", "Utility" };
+    static const juce::StringArray vocab { "Ambient", "Rhythm", "Dub",
+                                           "Tape", "Wide", "Utility" };
     return vocab;
 }
 

@@ -1,22 +1,22 @@
 <?xml version="1.0" encoding="UTF-8"?>
 
 <PARAMS product="orbit" stateVersion="1">
-  <PARAM id="character_mode" value="1.0"/>
-  <PARAM id="filter_highcut" value="5000.0"/>
+  <PARAM id="character_mode" value="0.0"/>
+  <PARAM id="filter_highcut" value="9000.0"/>
   <PARAM id="filter_lowcut" value="0.0"/>
   <PARAM id="freeze_active" value="0.0"/>
   <PARAM id="mix_drywet" value="0.32"/>
-  <PARAM id="mix_duck" value="0.5"/>
+  <PARAM id="mix_duck" value="0.55"/>
   <PARAM id="mix_pingpong" value="0.0"/>
   <PARAM id="mix_width" value="1.0"/>
-  <PARAM id="mod_depth" value="0.35"/>
+  <PARAM id="mod_depth" value="0.0"/>
   <PARAM id="mod_rate" value="0.5"/>
   <PARAM id="tap1_enabled" value="1.0"/>
-  <PARAM id="tap1_feedback" value="0.2"/>
+  <PARAM id="tap1_feedback" value="0.42"/>
   <PARAM id="tap1_pitch" value="0.0"/>
   <PARAM id="tap1_reverse" value="0.0"/>
-  <PARAM id="tap1_sync" value="0.0"/>
-  <PARAM id="tap1_time" value="110.0"/>
+  <PARAM id="tap1_sync" value="7.0"/>
+  <PARAM id="tap1_time" value="350.0"/>
   <PARAM id="tap2_enabled" value="0.0"/>
   <PARAM id="tap2_feedback" value="0.35"/>
   <PARAM id="tap2_pitch" value="0.0"/>
@@ -35,6 +35,6 @@
   <PARAM id="tap4_reverse" value="0.0"/>
   <PARAM id="tap4_sync" value="0.0"/>
   <PARAM id="tap4_time" value="350.0"/>
-  <PresetMeta name="Cassette Slap" tags="Lo-fi" author="Synthios"
-              description="A wobbly 110 ms tape slap that sounds like it was bounced to a worn cassette."/>
+  <PresetMeta name="Dotted 8th Vocal" tags="Wide" author="Synthios"
+              description="The classic dotted-eighth vocal throw with ducking that steps aside while you sing."/>
 </PARAMS>

@@ -35,6 +35,6 @@
   <PARAM id="tap4_reverse" value="0.0"/>
   <PARAM id="tap4_sync" value="0.0"/>
   <PARAM id="tap4_time" value="350.0"/>
-  <PresetMeta name="Room Builder" tags="Drums" author="Synthios"
+  <PresetMeta name="Room Builder" tags="Rhythm" author="Synthios"
               description="Three short free-time taps stack into a wide fake room around a dry kit."/>
 </PARAMS>

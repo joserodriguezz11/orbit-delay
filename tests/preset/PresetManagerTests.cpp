@@ -29,7 +29,7 @@ TEST_CASE_METHOD(Fixture, "save then load round-trips every parameter and metada
     set("mix_width", 1.7f);
     set("tap1_feedback", 0.62f);
     set("tap3_pitch", 7.0f);
-    REQUIRE(pm->saveUserPreset("My Wide Slap", "Vocals,Utility", "test preset", false));
+    REQUIRE(pm->saveUserPreset("My Wide Slap", "Wide,Utility", "test preset", false));
     // scramble
     set("mix_width", 0.3f);
     set("tap1_feedback", 0.1f);
@@ -37,7 +37,7 @@ TEST_CASE_METHOD(Fixture, "save then load round-trips every parameter and metada
     const auto users = pm->userPresets();
     REQUIRE(users.size() == 1);
     CHECK(users[0].name == "My Wide Slap");
-    CHECK(users[0].tags == "Vocals,Utility");
+    CHECK(users[0].tags == "Wide,Utility");
     CHECK(users[0].description == "test preset");
     CHECK_FALSE(users[0].isFactory);
     REQUIRE(pm->loadPreset(users[0]));
@@ -79,17 +79,17 @@ TEST_CASE_METHOD(Fixture, "tag filtering, overwrite protection, delete and renam
                 out.add(p);
         return out;
     };
-    REQUIRE(pm->saveUserPreset("VoxOne", "Vocals", "", false));
-    REQUIRE(pm->saveUserPreset("DrumOne", "Drums", "", false));
-    CHECK_FALSE(pm->saveUserPreset("VoxOne", "Vocals", "", false));   // exists
-    REQUIRE(pm->saveUserPreset("VoxOne", "Vocals", "v2", true));      // overwrite ok
-    CHECK(userByTag("Vocals").size() == 1);
-    CHECK(userByTag("Drums").size() == 1);
+    REQUIRE(pm->saveUserPreset("VoxOne", "Wide", "", false));
+    REQUIRE(pm->saveUserPreset("DrumOne", "Rhythm", "", false));
+    CHECK_FALSE(pm->saveUserPreset("VoxOne", "Wide", "", false));   // exists
+    REQUIRE(pm->saveUserPreset("VoxOne", "Wide", "v2", true));      // overwrite ok
+    CHECK(userByTag("Wide").size() == 1);
+    CHECK(userByTag("Rhythm").size() == 1);
     CHECK(userByTag("Ambient").size() == 0);
-    auto vox = userByTag("Vocals")[0];
+    auto vox = userByTag("Wide")[0];
     REQUIRE(pm->renameUserPreset(vox, "VoxTwo"));
-    CHECK(userByTag("Vocals")[0].name == "VoxTwo");
-    REQUIRE(pm->deleteUserPreset(userByTag("Vocals")[0]));
+    CHECK(userByTag("Wide")[0].name == "VoxTwo");
+    REQUIRE(pm->deleteUserPreset(userByTag("Wide")[0]));
     CHECK(pm->userPresets().size() == 1);
 }
 
@@ -260,11 +260,11 @@ TEST_CASE_METHOD(Fixture, "empty save name falls back to 'Preset' consistently")
 TEST_CASE("tagVocabulary is the fixed six-tag list, in order") {
     const auto& vocab = orbit::PresetManager::tagVocabulary();
     REQUIRE(vocab.size() == 6);
-    CHECK(vocab[0] == "Vocals");
-    CHECK(vocab[1] == "Drums");
-    CHECK(vocab[2] == "Ambient");
-    CHECK(vocab[3] == "Dub");
-    CHECK(vocab[4] == "Lo-fi");
+    CHECK(vocab[0] == "Ambient");
+    CHECK(vocab[1] == "Rhythm");
+    CHECK(vocab[2] == "Dub");
+    CHECK(vocab[3] == "Tape");
+    CHECK(vocab[4] == "Wide");
     CHECK(vocab[5] == "Utility");
     CHECK(&vocab == &orbit::PresetManager::tagVocabulary());   // stable single instance
 }

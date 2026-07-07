@@ -47,7 +47,7 @@ public:
     // file contents). Empty string if the preset cannot be resolved.
     juce::String presetXmlFor(const PresetInfo&) const;
 
-    // Fixed tag vocabulary (spec §1): { Vocals, Drums, Ambient, Dub, Lo-fi,
+    // Fixed tag vocabulary (spec §1): { Ambient, Rhythm, Dub, Tape, Wide,
     // Utility }. Single source of truth for the Phase-3 filter buttons and
     // save-time tag enforcement.
     static const juce::StringArray& tagVocabulary();

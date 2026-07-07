@@ -11,12 +11,12 @@ A `.orbitpreset` file is XML: the processor's existing versioned state tree
 additional child node:
 
 ```xml
-<PresetMeta name="Dotted 8th Vocal" tags="Vocals" author="Synthios"
+<PresetMeta name="Dotted 8th Vocal" tags="Wide" author="Synthios"
             description="Classic dotted-eighth slap for lead vocals."/>
 ```
 
-- `tags`: comma-separated, from the fixed vocabulary {Vocals, Drums,
-  Ambient, Dub, Lo-fi, Utility}. One or more.
+- `tags`: comma-separated, from the fixed vocabulary {Ambient, Rhythm,
+  Dub, Tape, Wide, Utility}. One or more.
 - Loading runs the same validation as `setStateInformation`: invalid XML →
   reject; `product != "orbit"` → reject; `stateVersion` migration switch
   applies. Presets ride the session-state migration path forever.
@@ -91,7 +91,7 @@ and set the modified flag (the applied slot's state counts as an edit);
 
 Recipe-authored XML source files in `assets/presets/` (repo), compiled into
 the binary via `juce_add_binary_data` target `OrbitPresetData`; the plugin
-target links it. Spread: Vocals 8, Drums 8, Ambient 8, Dub 6, Lo-fi 6,
+target links it. Spread: Ambient 8, Rhythm 8, Dub 6, Tape 6, Wide 8,
 Utility 4 = 40. Each preset: musically-justified values across the full
 engine (sync divisions, character modes, ping-pong/width, reverse/pitch,
 ducking where the style calls for it) + a one-line description. Naming:
