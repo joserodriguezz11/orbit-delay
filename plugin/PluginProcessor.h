@@ -38,6 +38,9 @@ public:
 
     orbit::PresetManager& presetManager() { return *presetManager_; }
 
+    // Live engine feed the editor polls for animation data (Phase 3 GUI).
+    orbit::viz::VizFeed& vizFeed() { return engine_.vizFeed(); }
+
 private:
     void updateEngineFromParameters();
 
