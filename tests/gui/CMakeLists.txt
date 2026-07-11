@@ -11,12 +11,14 @@
 # (GenericAudioProcessorEditor in PluginProcessor.h).
 add_executable(orbit_gui_tests
     OrbitThemeTests.cpp
+    OrbPadTests.cpp
     OrbitFontsTests.cpp
     OrbitControlsTests.cpp
     ProcessorAccessorTests.cpp
     OrbitEditorTests.cpp
     OrbitLookAndFeelTests.cpp
     ${CMAKE_SOURCE_DIR}/plugin/PluginProcessor.cpp
+    ${CMAKE_SOURCE_DIR}/plugin/gui/OrbPad.cpp
     ${CMAKE_SOURCE_DIR}/plugin/gui/OrbitControls.cpp
     ${CMAKE_SOURCE_DIR}/plugin/gui/OrbitEditor.cpp
     ${CMAKE_SOURCE_DIR}/plugin/gui/OrbitFonts.cpp

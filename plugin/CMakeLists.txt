@@ -47,6 +47,7 @@ target_sources(OrbitDelay PRIVATE
     PluginProcessor.cpp
     Parameters.cpp
     PresetManager.cpp
+    gui/OrbPad.cpp
     gui/OrbitControls.cpp
     gui/OrbitEditor.cpp
     gui/OrbitFonts.cpp
