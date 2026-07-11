@@ -73,3 +73,94 @@ TEST_CASE("OrbitEditor's installed constrainer clamps resizes to 100-200% at fix
         CHECK(ed->getHeight() <= OrbitEditor::kBaseH * 2);
     }
 }
+
+// ---------------------------------------------------------- v2 assembly
+
+TEST_CASE("editor hosts the pad, rail and strip and wires selection across them") {
+    juce::ScopedJuceInitialiser_GUI juceInit;
+    OrbitAudioProcessor proc;
+    std::unique_ptr<juce::AudioProcessorEditor> base { proc.createEditor() };
+    auto* ed = dynamic_cast<OrbitEditor*>(base.get());
+    REQUIRE(ed != nullptr);
+
+    // Selecting a tap in the strip reaches the pad.
+    ed->tapStrip().selectRow(2);
+    CHECK(ed->orbPad().selected() == 2);
+    // And selecting on the pad reaches the strip.
+    ed->orbPad().setSelected(0);        // silent setter
+    ed->tapStrip().selectRow(1);
+    CHECK(ed->orbPad().selected() == 1);
+}
+
+TEST_CASE("dragging an orb writes the tap's time and feedback parameters") {
+    juce::ScopedJuceInitialiser_GUI juceInit;
+    OrbitAudioProcessor proc;
+    std::unique_ptr<juce::AudioProcessorEditor> base { proc.createEditor() };
+    auto* ed = dynamic_cast<OrbitEditor*>(base.get());
+    REQUIRE(ed != nullptr);
+
+    ed->orbPad().beginOrbDrag(0);
+    ed->orbPad().dragOrbTo(0.5f, 0.5f);
+    ed->orbPad().endOrbDrag();
+
+    // x=0.5 on the log curve is 40*sqrt(22.5) ~= 189.7ms; y=0.5 -> fb 0.475.
+    CHECK(proc.apvts.getRawParameterValue("tap1_time")->load()
+          == Catch::Approx(189.7f).margin(1.0f));
+    CHECK(proc.apvts.getRawParameterValue("tap1_feedback")->load()
+          == Catch::Approx(0.475f).margin(0.005f));
+}
+
+TEST_CASE("dragging a synced orb snaps onto the nearest real division") {
+    juce::ScopedJuceInitialiser_GUI juceInit;
+    OrbitAudioProcessor proc;
+    std::unique_ptr<juce::AudioProcessorEditor> base { proc.createEditor() };
+    auto* ed = dynamic_cast<OrbitEditor*>(base.get());
+    REQUIRE(ed != nullptr);
+
+    // Put tap 1 in quarter-note sync (120bpm default -> 500ms).
+    auto* sync = proc.apvts.getParameter("tap1_sync");
+    sync->setValueNotifyingHost(sync->convertTo0to1(float(orbit::dsp::SyncDivision::Quarter)));
+
+    // Drag near the 250ms region: the division flips to the nearest (1/8).
+    ed->orbPad().beginOrbDrag(0);
+    ed->orbPad().dragOrbTo(orbit::gui::theme::msToX(250.0f), 0.4f);
+    ed->orbPad().endOrbDrag();
+    CHECK(int(proc.apvts.getRawParameterValue("tap1_sync")->load())
+          == int(orbit::dsp::SyncDivision::Eighth));
+    // Free time is untouched by synced drags.
+    CHECK(proc.apvts.getRawParameterValue("tap1_time")->load()
+          == Catch::Approx(350.0f).margin(0.5f));
+}
+
+// Hidden: renders the assembled editor to PNG for visual parity checks.
+// Run explicitly: orbit_gui_tests "[.snapshot]"
+TEST_CASE("render editor snapshot to /tmp", "[.snapshot]") {
+    juce::ScopedJuceInitialiser_GUI juceInit;
+    OrbitAudioProcessor proc;
+
+    // Stage a Machine-Hall-ish scene: four live taps spread over the field.
+    const auto setP = [&] (const juce::String& id, float v) {
+        auto* p = proc.apvts.getParameter(id);
+        p->setValueNotifyingHost(p->convertTo0to1(v));
+    };
+    const float xs[] = { 0.57f, 0.43f, 0.62f, 0.78f };
+    const float fb[] = { 0.73f, 0.56f, 0.53f, 0.56f };
+    for (int i = 0; i < 4; ++i) {
+        setP("tap" + juce::String(i + 1) + "_enabled", 1.0f);
+        setP("tap" + juce::String(i + 1) + "_time",
+             orbit::gui::theme::msOfX(xs[i]));
+        setP("tap" + juce::String(i + 1) + "_feedback", fb[i]);
+    }
+    setP("mix_drywet", 0.48f);
+
+    std::unique_ptr<juce::AudioProcessorEditor> ed { proc.createEditor() };
+    juce::Image img { juce::Image::ARGB, ed->getWidth(), ed->getHeight(), true };
+    juce::Graphics g { img };
+    ed->paintEntireComponent(g, true);
+
+    juce::PNGImageFormat png;
+    juce::File out { "/tmp/orbit-editor-snapshot.png" };
+    juce::FileOutputStream stream { out };
+    REQUIRE(stream.openedOk());
+    REQUIRE(png.writeImageToStream(img, stream));
+}

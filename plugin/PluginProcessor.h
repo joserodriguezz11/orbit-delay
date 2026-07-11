@@ -43,6 +43,10 @@ public:
     // Live engine feed the editor polls for animation data (Phase 3 GUI).
     orbit::viz::VizFeed& vizFeed() { return engine_.vizFeed(); }
 
+    // Last host tempo seen on the audio thread (120 until a host reports one).
+    // The editor uses it for sync-division snapping and pad gridlines.
+    double currentBpm() const { return uiBpm_.load(std::memory_order_relaxed); }
+
 private:
     void updateEngineFromParameters();
 
@@ -72,6 +76,7 @@ private:
     std::atomic<float>* lowCutParam_ = nullptr;
     std::atomic<float>* highCutParam_ = nullptr;
     std::atomic<float>* freezeParam_ = nullptr;
+    std::atomic<double> uiBpm_ { 120.0 };
 
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(OrbitAudioProcessor)
 };

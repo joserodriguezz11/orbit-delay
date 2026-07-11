@@ -71,8 +71,10 @@ void OrbitAudioProcessor::processBlock(juce::AudioBuffer<float>& buffer, juce::M
 
     if (auto* playhead = getPlayHead())
         if (const auto position = playhead->getPosition())
-            if (const auto bpm = position->getBpm())
+            if (const auto bpm = position->getBpm()) {
                 engine_.setBpm(*bpm);
+                uiBpm_.store(*bpm, std::memory_order_relaxed);
+            }
 
     updateEngineFromParameters();
     engine_.process(buffer.getArrayOfWritePointers(),
