@@ -57,9 +57,8 @@ void OrbitLookAndFeel::drawRotarySlider(juce::Graphics& g, int x, int y,
                                                    juce::PathStrokeType::rounded });
     }
 
-    // Centred mono value readout.
-    const float fontH = juce::jlimit(theme::fsMonoSm, theme::fsHeadingMd,
-                                     radius * 0.34f);
+    // Centred mono value readout (v2 knob text runs 8.5px..12.5px with size).
+    const float fontH = juce::jlimit(8.5f, 12.5f, radius * 0.34f);
     g.setColour(theme::bone100);
     g.setFont(monoFont(fontH));
     g.drawText(slider.getTextFromValue(slider.getValue()),
@@ -99,7 +98,7 @@ void OrbitLookAndFeel::drawToggleButton(juce::Graphics& g,
     const auto text = button.getButtonText();
     if (text.isNotEmpty()) {
         g.setColour(on ? theme::bone100 : theme::bone300);
-        g.setFont(sansFont(theme::fsLabel));
+        g.setFont(sansFont(13.0f));
         auto textArea = bounds.withTrimmedLeft(trackW + 8.0f);
         g.drawText(text, textArea, juce::Justification::centredLeft, false);
     }

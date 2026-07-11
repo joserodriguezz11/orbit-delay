@@ -1,0 +1,47 @@
+/* Synthios Records — Typography tokens */
+
+:root {
+  /* ---- Families ---- */
+  --font-display: 'Syne', 'Schibsted Grotesk', system-ui, sans-serif;   /* @kind font */
+  --font-sans:    'Schibsted Grotesk', system-ui, -apple-system, sans-serif;   /* @kind font */
+  --font-mono:    'Space Mono', ui-monospace, 'SF Mono', Menlo, monospace;   /* @kind font */
+
+  /* ---- Weights ---- */
+  --fw-regular:  400;   /* @kind other */
+  --fw-medium:   500;   /* @kind other */
+  --fw-semibold: 600;   /* @kind other */
+  --fw-bold:     700;   /* @kind other */
+  --fw-extra:    800;   /* @kind other */
+
+  /* ---- Type scale (fluid-ish, fixed px) ----
+     Display sizes use --font-display; text sizes use --font-sans. */
+  --fs-display-xl: 96px;   /* hero wordmark moments */
+  --fs-display-lg: 68px;
+  --fs-display-md: 48px;
+  --fs-display-sm: 34px;
+
+  --fs-heading-lg: 28px;
+  --fs-heading-md: 22px;
+  --fs-heading-sm: 18px;
+
+  --fs-body-lg: 18px;
+  --fs-body-md: 16px;   /* base */
+  --fs-body-sm: 14px;
+
+  --fs-label:   13px;
+  --fs-caption: 12px;
+  --fs-mono-sm: 12px;   /* catalog numbers, timecodes */
+
+  /* ---- Line heights ---- */
+  --lh-tight:   1.04;   /* @kind other */
+  --lh-snug:    1.18;   /* @kind other */
+  --lh-normal:  1.5;    /* @kind other */
+  --lh-relaxed: 1.65;   /* @kind other */
+
+  /* ---- Letter spacing ---- */
+  --ls-display: -0.02em;   /* @kind other */
+  --ls-tight:   -0.01em;   /* @kind other */
+  --ls-normal:  0;         /* @kind other */
+  --ls-wide:    0.04em;    /* @kind other */
+  --ls-caps:    0.14em;    /* @kind other */
+}

@@ -2,15 +2,16 @@
 
 #include <juce_audio_processors/juce_audio_processors.h>
 #include "PluginProcessor.h"
+#include "gui/OrbitTheme.h"
 
 // Top-level editor shell (Phase 3 Wave 1, Task 3). Owns the window: fixed
-// 11:7 aspect, resizable 100%-200% of the 1100x700 base, and exposes the
+// aspect, resizable 100%-200% of the 1180x720 Full-v2 base, and exposes the
 // single UI-side proportional scale factor every child layout derives from.
 // No controls yet — children arrive in Task 5.
 class OrbitEditor : public juce::AudioProcessorEditor {
 public:
-    static constexpr int kBaseW = 1100;
-    static constexpr int kBaseH = 700;
+    static constexpr int kBaseW = orbit::gui::theme::kWindowW;
+    static constexpr int kBaseH = orbit::gui::theme::kWindowH;
 
     explicit OrbitEditor(OrbitAudioProcessor& proc);
 

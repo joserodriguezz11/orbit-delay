@@ -1,0 +1,88 @@
+/* Synthios Records — Color tokens
+   LIGHT-FIRST palette, taken from the Logo-Light lockup: warm Bone background,
+   ink text, lavender-grey muted copy, and a single red signature accent (#E30E0E,
+   the logo "IOS"). Token families stay named --voltage-* / --ember-* (both red) for
+   back-compat. Logo-Dark is the one intentionally dark surface. */
+
+:root {
+  /* ---- Base scales ---- */
+
+  /* Ink — near-black, faintly blue. Primary dark surfaces. */
+  --ink-900: #08080C;
+  --ink-850: #0C0C12;
+  --ink-800: #111119;
+  --ink-700: #181822;
+  --ink-600: #21212D;
+  --ink-500: #2D2D3A;
+  --ink-400: #3B3B4A;
+
+  /* Bone — warm off-white. Light surfaces + text on dark. */
+  --bone-50:  #F5F1E8;
+  --bone-100: #ECE7DA;
+  --bone-200: #DAD4C4;
+  --bone-300: #B8B1A0;
+
+  /* Smoke — neutral grey text scale, tuned to read on the light Bone background
+     (darker = stronger). Slight cool/lavender cast. */
+  --smoke-100: #9A9AA8;   /* lightest muted */
+  --smoke-200: #6F6F80;   /* secondary text */
+  --smoke-300: #565666;   /* muted text */
+  --smoke-400: #3C3C48;   /* strong muted */
+
+  /* ---- Signature accents ---- */
+
+  /* Signal — red (the logo "IOS" accent). The brand's single signature accent.
+     Token family kept as --voltage-* for back-compat. */
+  --voltage-300: #FF5C5C;
+  --voltage-400: #E30E0E;   /* core — #E30E0E */
+  --voltage-500: #C40A0A;
+  --voltage-600: #9E0808;
+
+  /* Ember — the same red, used for "live" / "now playing" states.
+     Token family kept as --ember-* for back-compat. */
+  --ember-300: #FF5C5C;
+  --ember-400: #E30E0E;   /* core — #E30E0E */
+  --ember-500: #C40A0A;
+  --ember-600: #9E0808;
+
+  /* Tape — muted gold for accents on light surfaces / vintage cues. */
+  --tape-400: #C8A24A;
+
+  /* ---- Semantic status ---- */
+  --status-positive: #7CD66B;
+  --status-warning:  #F2B33A;
+  --status-negative: #E30E0E;
+  --status-info:     #5BC8E6;
+
+  /* ============================================================
+     SEMANTIC ALIASES  (use these in components, not raw scales)
+     ============================================================ */
+
+  /* Surfaces (light-first) */
+  --surface-base:    var(--bone-50);   /* page background */
+  --surface-raised:  #FFFFFF;          /* cards, panels */
+  --surface-overlay: #FFFFFF;          /* popovers, menus */
+  --surface-sunken:  var(--bone-100);  /* wells, track lists */
+  --surface-inverse: var(--ink-900);   /* dark blocks on light page */
+
+  /* Text */
+  --text-primary:   var(--ink-900);
+  --text-secondary: var(--smoke-200);
+  --text-muted:     var(--smoke-300);
+  --text-inverse:   var(--bone-50);    /* on dark/accent surfaces */
+  --text-on-accent: var(--bone-50);    /* light text on red */
+
+  /* Brand */
+  --brand:          var(--voltage-400);
+  --brand-strong:   var(--voltage-500);
+  --accent:         var(--ember-400);
+  --accent-strong:  var(--ember-500);
+
+  /* Lines + edges */
+  --border-subtle: rgba(8, 8, 12, 0.10);
+  --border-strong: rgba(8, 8, 12, 0.16);
+  --border-accent: var(--voltage-400);
+
+  /* Focus ring */
+  --ring: var(--voltage-400);
+}
