@@ -20,6 +20,17 @@ if(NOT ORBIT_PRESET_COUNT EQUAL 40)
 endif()
 juce_add_binary_data(OrbitPresetData SOURCES ${ORBIT_PRESET_SOURCES})
 
+# Design fonts embedded as binary data (OFL-licensed: Archivo, IBM Plex Mono,
+# Syne). Own header/namespace so the symbols never collide with the preset
+# BinaryData target.
+file(GLOB ORBIT_FONT_SOURCES CONFIGURE_DEPENDS
+    "${CMAKE_SOURCE_DIR}/assets/fonts/*.ttf")
+list(SORT ORBIT_FONT_SOURCES)
+juce_add_binary_data(OrbitFontData
+    HEADER_NAME OrbitFontBinary.h
+    NAMESPACE OrbitFontBinary
+    SOURCES ${ORBIT_FONT_SOURCES})
+
 juce_add_plugin(OrbitDelay
     COMPANY_NAME "${ORBIT_COMPANY_NAME}"
     BUNDLE_ID "${ORBIT_BUNDLE_ID}"
@@ -36,7 +47,9 @@ target_sources(OrbitDelay PRIVATE
     PluginProcessor.cpp
     Parameters.cpp
     PresetManager.cpp
+    gui/OrbitControls.cpp
     gui/OrbitEditor.cpp
+    gui/OrbitFonts.cpp
     gui/OrbitLookAndFeel.cpp)
 
 target_compile_definitions(OrbitDelay PUBLIC
@@ -49,6 +62,7 @@ target_link_libraries(OrbitDelay
         orbit_core
         orbit_engine
         OrbitPresetData
+        OrbitFontData
         juce::juce_audio_utils
     PUBLIC
         juce::juce_recommended_config_flags

@@ -11,11 +11,15 @@
 # (GenericAudioProcessorEditor in PluginProcessor.h).
 add_executable(orbit_gui_tests
     OrbitThemeTests.cpp
+    OrbitFontsTests.cpp
+    OrbitControlsTests.cpp
     ProcessorAccessorTests.cpp
     OrbitEditorTests.cpp
     OrbitLookAndFeelTests.cpp
     ${CMAKE_SOURCE_DIR}/plugin/PluginProcessor.cpp
+    ${CMAKE_SOURCE_DIR}/plugin/gui/OrbitControls.cpp
     ${CMAKE_SOURCE_DIR}/plugin/gui/OrbitEditor.cpp
+    ${CMAKE_SOURCE_DIR}/plugin/gui/OrbitFonts.cpp
     ${CMAKE_SOURCE_DIR}/plugin/gui/OrbitLookAndFeel.cpp
     ${CMAKE_SOURCE_DIR}/plugin/Parameters.cpp
     ${CMAKE_SOURCE_DIR}/plugin/PresetManager.cpp)
@@ -32,6 +36,7 @@ target_link_libraries(orbit_gui_tests PRIVATE
     orbit_core
     orbit_engine
     OrbitPresetData
+    OrbitFontData
     Catch2::Catch2WithMain
     juce::juce_audio_processors
     juce::juce_audio_utils
