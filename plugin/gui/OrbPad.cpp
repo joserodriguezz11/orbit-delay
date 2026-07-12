@@ -64,6 +64,105 @@ float stepHeat(float heat, float target01, float dt) {
 OrbPad::OrbPad() {
     setOpaque(true);
     setMouseCursor(juce::MouseCursor::CrosshairCursor);
+
+    // Riding axis knobs: 56px, tap-linked accents, writing through onOrbMove.
+    addAndMakeVisible(timeKnob_);
+    addAndMakeVisible(fbKnob_);
+    timeKnob_.setLinked(true);
+    fbKnob_.setLinked(true);
+    fbKnob_.setRange(0.0, 95.0, 1.0);
+    fbKnob_.setKnobDefault(40.0);
+    fbKnob_.textFromValueFunction = [] (double v) {
+        return juce::String(juce::roundToInt(v)) + "%";
+    };
+    fbKnob_.onValueChange = [this] {
+        if (knobGuard_)
+            return;
+        const auto& tp = taps_[size_t(sel_)];
+        if (onOrbMove != nullptr)
+            onOrbMove(sel_, tp.x, float(fbKnob_.getValue() / 95.0));
+    };
+    timeKnob_.onValueChange = [this] {
+        if (knobGuard_)
+            return;
+        const auto& tp = taps_[size_t(sel_)];
+        float x;
+        if (timeKnobStepped_) {
+            const int idx = juce::jlimit(0, int(syncGrid_.size()) - 1,
+                                         juce::roundToInt(timeKnob_.getValue()));
+            x = syncGrid_[size_t(idx)].x;
+        } else {
+            x = float(timeKnob_.getValue());
+        }
+        if (onOrbMove != nullptr)
+            onOrbMove(sel_, x, tp.y);
+    };
+    configureTimeKnob();
+    syncKnobsFromTap();
+}
+
+int OrbPad::nearestGridIndex(float x) const {
+    int best = 0;
+    float bestD = 1.0e9f;
+    for (int i = 0; i < int(syncGrid_.size()); ++i) {
+        const float d = std::abs(syncGrid_[size_t(i)].x - x);
+        if (d < bestD) {
+            bestD = d;
+            best = i;
+        }
+    }
+    return best;
+}
+
+void OrbPad::configureTimeKnob() {
+    const bool stepped = taps_[size_t(sel_)].synced && !syncGrid_.empty();
+    timeKnobStepped_ = stepped;
+    knobGuard_ = true;
+    if (stepped) {
+        timeKnob_.setRange(0.0, double(syncGrid_.size() - 1), 1.0);
+        timeKnob_.setKnobDefault(double(syncGrid_.size() / 2));
+        timeKnob_.textFromValueFunction = [this] (double v) {
+            const int idx = juce::jlimit(0, int(syncGrid_.size()) - 1,
+                                         juce::roundToInt(v));
+            return syncGrid_.empty() ? juce::String() : syncGrid_[size_t(idx)].label;
+        };
+    } else {
+        timeKnob_.setRange(0.0, 1.0, 0.004);
+        timeKnob_.setKnobDefault(0.5);
+        timeKnob_.textFromValueFunction = [] (double v) {
+            return juce::String(juce::roundToInt(theme::msOfX(float(v)))) + "ms";
+        };
+    }
+    knobGuard_ = false;
+}
+
+void OrbPad::syncKnobsFromTap() {
+    const auto& tp = taps_[size_t(sel_)];
+    knobGuard_ = true;
+    fbKnob_.setValue(std::round(tp.y * 95.0f), juce::sendNotificationSync);
+    timeKnob_.setValue(timeKnobStepped_ ? double(nearestGridIndex(tp.x))
+                                        : double(tp.x),
+                       juce::sendNotificationSync);
+    const auto accent = theme::lchColour(theme::tapLch(tp.x, tp.y, warm_, th()), 1.0f);
+    timeKnob_.setAccent(accent);
+    fbKnob_.setAccent(accent);
+    knobGuard_ = false;
+    updateKnobPositions();
+}
+
+void OrbPad::updateKnobPositions() {
+    const auto& tp = taps_[size_t(sel_)];
+    const float W = float(kPadW), H = float(kPadH);
+    // Mockup containers: TIME rides x along the bottom, FEEDBACK rides y at
+    // the left; both clamp so the 56px knob + label stay inside the field.
+    const float bx = juce::jlimit(12.0f, W - 98.0f, tp.x * W - 42.0f);
+    timeKnob_.setBounds(int(bx + 14.0f), int(H - 94.0f), 56, 56);
+    const float ly = juce::jlimit(56.0f, H - 164.0f, (1.0f - tp.y) * H - 50.0f);
+    fbKnob_.setBounds(28, int(ly + 12.0f), 56, 56);
+}
+
+void OrbPad::resized() {
+    updateKnobPositions();
 }
 
 const theme::CharacterTheme& OrbPad::th() const {
@@ -73,7 +172,13 @@ const theme::CharacterTheme& OrbPad::th() const {
 void OrbPad::setTap(int i, const TapView& tap) {
     if (i < 0 || i >= 4)
         return;
+    const bool syncFlipped = i == sel_ && taps_[size_t(i)].synced != tap.synced;
     taps_[size_t(i)] = tap;
+    if (i == sel_) {
+        if (syncFlipped)
+            configureTimeKnob();
+        syncKnobsFromTap();
+    }
     repaint();
 }
 
@@ -81,6 +186,8 @@ void OrbPad::setSelected(int i) {
     if (i == sel_ || i < 0 || i >= 4)
         return;
     sel_ = i;
+    configureTimeKnob();
+    syncKnobsFromTap();
     repaint();
 }
 
@@ -103,8 +210,10 @@ void OrbPad::setWarmField(bool warm) {
     repaint();
 }
 
-void OrbPad::setSyncGridX(std::vector<float> xs) {
-    syncGridX_ = std::move(xs);
+void OrbPad::setSyncGrid(std::vector<SyncGridEntry> grid) {
+    syncGrid_ = std::move(grid);
+    configureTimeKnob();
+    syncKnobsFromTap();
     repaint();
 }
 
@@ -370,11 +479,12 @@ void OrbPad::paint(juce::Graphics& g) {
     }
 
     // Sync gridlines for the selected synced tap.
-    if (selT.synced && !syncGridX_.empty()) {
+    if (selT.synced && !syncGrid_.empty()) {
         const float dashes[] = { 3.0f, 6.0f };
         g.setColour(acc(selCol, 0.14f));
-        for (const float gx : syncGridX_)
-            g.drawDashedLine({ { gx * W, 0.0f }, { gx * W, H } }, dashes, 2, 1.0f);
+        for (const auto& entry : syncGrid_)
+            g.drawDashedLine({ { entry.x * W, 0.0f }, { entry.x * W, H } },
+                             dashes, 2, 1.0f);
     }
 
     // Tap halos (two soft radial layers), pulsed by real echo fires.
@@ -579,4 +689,31 @@ void OrbPad::paint(juce::Graphics& g) {
     g.drawText(juce::String::fromUTF8("DRAG ORB \xc2\xb7 FLICK TO THROW"),
                juce::Rectangle<float>(W - 260.0f - 14.0f, 10.0f, 260.0f, 10.0f),
                juce::Justification::centredRight, false);
+
+    // Riding-knob scrims + labels (the knobs themselves are child components
+    // painted after this). Scrim: dark radial pool with a heat-driven glow.
+    const auto knobScrim = [&] (const OrbitKnob& k, const juce::String& label,
+                                const juce::String& axis) {
+        const float cx = float(k.getX()) + 28.0f, cy = float(k.getY()) + 28.0f;
+        juce::ColourGradient pool { theme::panel.withAlpha(0.92f), cx, cy,
+                                    theme::panel.withAlpha(0.0f), cx, cy + 52.0f, true };
+        pool.addColour(0.62, theme::panel.withAlpha(0.55f));
+        g.setGradientFill(pool);
+        g.fillEllipse(cx - 52.0f, cy - 52.0f, 104.0f, 104.0f);
+        if (heat_ > 0.0f) {
+            g.setColour(acc(selCol, (0.2f + heat_ * 0.15f) * 0.5f));
+            g.drawEllipse(cx - 31.0f, cy - 31.0f, 62.0f, 62.0f, 3.0f);
+        }
+        g.setFont(fonts::tracked(fonts::monoSemiBold(7.5f), 0.2f));
+        const float ty = cy + 32.0f;
+        const float lw = 90.0f;
+        g.setColour(theme::bone50.withAlpha(0.55f));
+        g.drawText(label + " ", juce::Rectangle<float>(cx - lw / 2.0f, ty, lw - 14.0f, 9.0f),
+                   juce::Justification::centredRight, false);
+        g.setColour(acc(selCol, 1.0f));
+        g.drawText(axis, juce::Rectangle<float>(cx + lw / 2.0f - 14.0f, ty, 14.0f, 9.0f),
+                   juce::Justification::centredLeft, false);
+    };
+    knobScrim(timeKnob_, "TIME", juce::String::fromUTF8("\xc2\xb7X"));
+    knobScrim(fbKnob_, "FEEDBACK", juce::String::fromUTF8("\xc2\xb7Y"));
 }

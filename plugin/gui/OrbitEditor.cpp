@@ -128,15 +128,19 @@ void OrbitEditor::refreshTap(int i) {
 }
 
 void OrbitEditor::refreshSyncGrid() {
-    // Gridlines at every real division that lands inside the pad's ms range.
-    std::vector<float> xs;
+    // Gridlines at every real division that lands inside the pad's ms range,
+    // labelled for the stepped TIME knob. Sorted by position so knob steps
+    // walk short -> long.
+    std::vector<OrbPad::SyncGridEntry> grid;
     const double bpm = proc_.currentBpm();
     for (int d = 1; d < int(SyncDivision::NumDivisions); ++d) {
         const float ms = orbit::dsp::divisionToSeconds(SyncDivision(d), bpm) * 1000.0f;
         if (ms >= 40.0f && ms <= 900.0f)
-            xs.push_back(theme::msToX(ms));
+            grid.push_back({ theme::msToX(ms), orbit::dsp::kSyncDivisionNames[d] });
     }
-    pad_.setSyncGridX(std::move(xs));
+    std::sort(grid.begin(), grid.end(),
+              [] (const auto& a, const auto& b) { return a.x < b.x; });
+    pad_.setSyncGrid(std::move(grid));
 }
 
 void OrbitEditor::writeOrb(int i, float x, float y) {

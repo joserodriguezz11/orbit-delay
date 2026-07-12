@@ -116,3 +116,53 @@ TEST_CASE("OrbPad reports selection changes and orb moves through callbacks") {
     CHECK(movedX == Approx(0.75f).margin(1e-4));
     CHECK(movedY == Approx(0.6f).margin(1e-4));
 }
+
+// -------------------------------------------------------- riding knobs
+
+TEST_CASE("riding knobs mirror the selected tap and write back through onOrbMove") {
+    juce::ScopedJuceInitialiser_GUI juceInit;
+    OrbPad pad;
+    pad.setSize(orbit::gui::theme::kPadW, orbit::gui::theme::kPadH);
+    pad.setTap(0, { true, 0.5f, 0.6f, false, false });
+
+    // Mirror: TIME shows the x position (190ms on the log curve), FEEDBACK
+    // shows round(y*95).
+    CHECK(pad.timeKnob().getValue() == Catch::Approx(0.5).margin(1e-3));
+    CHECK(pad.timeKnob().getTextFromValue(0.5) == "190ms");
+    CHECK(pad.fbKnob().getValue() == Catch::Approx(57.0));
+    CHECK(pad.fbKnob().getTextFromValue(57.0) == "57%");
+
+    // Write-back: turning a knob is an orb move on the selected tap.
+    int movedTap = -1; float mx = -1.0f, my = -1.0f;
+    pad.onOrbMove = [&] (int i, float x, float y) { movedTap = i; mx = x; my = y; };
+    pad.timeKnob().setValue(0.75, juce::sendNotificationSync);
+    CHECK(movedTap == 0);
+    // 0.75 lands off the knob's 0.004 step grid and snaps to 0.752 — the
+    // same rounding the mockup's snapTo applies.
+    CHECK(mx == Catch::Approx(0.75f).margin(0.003));
+    CHECK(my == Catch::Approx(0.6f).margin(1e-3));
+
+    pad.fbKnob().setValue(19.0, juce::sendNotificationSync);
+    CHECK(my == Catch::Approx(0.2f).margin(1e-3));
+}
+
+TEST_CASE("synced taps flip the TIME knob into stepped division mode") {
+    juce::ScopedJuceInitialiser_GUI juceInit;
+    OrbPad pad;
+    pad.setSize(orbit::gui::theme::kPadW, orbit::gui::theme::kPadH);
+    using orbit::gui::theme::msToX;
+    pad.setSyncGrid({ { msToX(250.0f), "1/8" }, { msToX(500.0f), "1/4" },
+                      { msToX(750.0f), "1/4 D" } });
+    pad.setTap(0, { true, msToX(500.0f), 0.4f, true, false });
+
+    // Stepped: value is the grid index of the tap's position.
+    CHECK(pad.timeKnob().getMaximum() == Catch::Approx(2.0));
+    CHECK(pad.timeKnob().getValue() == Catch::Approx(1.0));
+    CHECK(pad.timeKnob().getTextFromValue(1.0) == "1/4");
+
+    // Stepping emits the grid x, which the editor snaps onto the division.
+    float mx = -1.0f;
+    pad.onOrbMove = [&] (int, float x, float) { mx = x; };
+    pad.timeKnob().setValue(0.0, juce::sendNotificationSync);
+    CHECK(mx == Catch::Approx(msToX(250.0f)).margin(1e-4));
+}

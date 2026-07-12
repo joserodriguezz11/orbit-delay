@@ -3,6 +3,7 @@
 #include <array>
 #include <vector>
 #include <juce_gui_basics/juce_gui_basics.h>
+#include "OrbitControls.h"
 #include "OrbitTheme.h"
 #include "dsp/CharacterStage.h"
 #include "viz/VizFeed.h"
@@ -67,10 +68,12 @@ public:
     void setCharacter(orbit::dsp::CharacterStage::Mode mode);
     void setFreeze(bool frozen);
     void setWarmField(bool warm);
-    // Gridline positions (in normalized x) shown while the selected tap is
-    // synced; empty hides the grid. The editor derives these from the real
-    // TempoSync divisions at host tempo.
-    void setSyncGridX(std::vector<float> xs);
+    // Sync grid: normalized-x gridline positions with their division names,
+    // shown while the selected tap is synced (and driving the stepped TIME
+    // knob). The editor derives these from real TempoSync divisions at host
+    // tempo; empty hides the grid.
+    struct SyncGridEntry { float x; juce::String label; };
+    void setSyncGrid(std::vector<SyncGridEntry> grid);
     // Optional: real echo fires pulse the matching orb's halo.
     void setEventSource(orbit::viz::VizFeed* feed) { feed_ = feed; }
 
@@ -79,6 +82,14 @@ public:
     void beginOrbDrag(int i);
     void dragOrbTo(float nx, float ny);   // already grab-compensated
     void endOrbDrag();
+
+    // Riding axis knobs (mockup kTime/kFb): TIME follows the selected orb
+    // along the bottom edge, FEEDBACK along the left. Turning them emits
+    // onOrbMove on the selected tap — the same write path as a drag.
+    OrbitKnob& timeKnob() { return timeKnob_; }
+    OrbitKnob& fbKnob() { return fbKnob_; }
+
+    void resized() override;
 
     void paint(juce::Graphics&) override;
     void mouseDown(const juce::MouseEvent&) override;
@@ -96,14 +107,22 @@ private:
     void animationTick();
     bool animating() const;
     void burstSparks(float nx, float ny, orbit::gui::theme::Lch col);
+    void configureTimeKnob();
+    void syncKnobsFromTap();
+    void updateKnobPositions();
+    int nearestGridIndex(float x) const;
 
     std::array<TapView, 4> taps_ {};
     int sel_ = 0;
     orbit::dsp::CharacterStage::Mode mode_ = orbit::dsp::CharacterStage::Mode::Clean;
     bool freeze_ = false;
     bool warm_ = orbit::gui::theme::kDefaultWarmField;
-    std::vector<float> syncGridX_;
+    std::vector<SyncGridEntry> syncGrid_;
     orbit::viz::VizFeed* feed_ = nullptr;
+
+    OrbitKnob timeKnob_, fbKnob_;
+    bool timeKnobStepped_ = false;   // current mode of the TIME knob
+    bool knobGuard_ = false;         // suppress write-back while mirroring
 
     // Drag state.
     int dragI_ = -1, hoverI_ = -1;
