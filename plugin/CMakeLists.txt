@@ -49,6 +49,8 @@ target_sources(OrbitDelay PRIVATE
     PresetManager.cpp
     gui/OrbPad.cpp
     gui/OrbitControls.cpp
+    gui/OrbitHeader.cpp
+    gui/OrbitPresetBrowser.cpp
     gui/OrbitRail.cpp
     gui/OrbitTapStrip.cpp
     gui/OrbitEditor.cpp

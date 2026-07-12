@@ -3,6 +3,8 @@
 #include <juce_audio_processors/juce_audio_processors.h>
 #include "PluginProcessor.h"
 #include "gui/OrbPad.h"
+#include "gui/OrbitHeader.h"
+#include "gui/OrbitPresetBrowser.h"
 #include "gui/OrbitRail.h"
 #include "gui/OrbitTapStrip.h"
 #include "gui/OrbitTheme.h"
@@ -28,6 +30,8 @@ public:
     OrbPad& orbPad() { return pad_; }
     OrbitTapStrip& tapStrip() { return strip_; }
     OrbitRail& rail() { return rail_; }
+    OrbitHeader& header() { return header_; }
+    OrbitPresetBrowser& presetBrowser() { return browser_; }
 
     void paint(juce::Graphics&) override;
     void resized() override;
@@ -43,6 +47,8 @@ private:
     OrbPad pad_;
     OrbitRail rail_;
     OrbitTapStrip strip_;
+    OrbitHeader header_;
+    OrbitPresetBrowser browser_;
 
     // Per-tap view attachments (time/feedback/sync/enabled/reverse) plus
     // character + freeze; all funnel into refreshTap()/pad setters.

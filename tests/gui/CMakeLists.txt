@@ -15,12 +15,15 @@ add_executable(orbit_gui_tests
     OrbitFontsTests.cpp
     OrbitControlsTests.cpp
     OrbitRailStripTests.cpp
+    OrbitHeaderTests.cpp
     ProcessorAccessorTests.cpp
     OrbitEditorTests.cpp
     OrbitLookAndFeelTests.cpp
     ${CMAKE_SOURCE_DIR}/plugin/PluginProcessor.cpp
     ${CMAKE_SOURCE_DIR}/plugin/gui/OrbPad.cpp
     ${CMAKE_SOURCE_DIR}/plugin/gui/OrbitControls.cpp
+    ${CMAKE_SOURCE_DIR}/plugin/gui/OrbitHeader.cpp
+    ${CMAKE_SOURCE_DIR}/plugin/gui/OrbitPresetBrowser.cpp
     ${CMAKE_SOURCE_DIR}/plugin/gui/OrbitRail.cpp
     ${CMAKE_SOURCE_DIR}/plugin/gui/OrbitTapStrip.cpp
     ${CMAKE_SOURCE_DIR}/plugin/gui/OrbitEditor.cpp

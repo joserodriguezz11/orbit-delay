@@ -28,10 +28,22 @@ OrbitEditor::OrbitEditor(OrbitAudioProcessor& proc)
       proc_(proc),
       rail_(proc.apvts,
             [&proc] { return 1.0f - proc.vizFeed().readLevels().duckGain; }),
-      strip_(proc.apvts, [&proc] { return proc.currentBpm(); }) {
+      strip_(proc.apvts, [&proc] { return proc.currentBpm(); }),
+      header_(proc),
+      browser_(proc.presetManager()) {
     addAndMakeVisible(pad_);
     addAndMakeVisible(rail_);
     addAndMakeVisible(strip_);
+    addAndMakeVisible(header_);
+    addChildComponent(browser_);   // hidden until the capsule opens it
+
+    header_.onBrowserToggle = [this] {
+        if (!browser_.isVisible())
+            browser_.refresh();    // pick up user presets saved mid-session
+        browser_.setVisible(!browser_.isVisible());
+        browser_.toFront(false);
+    };
+    browser_.onClose = [this] { browser_.setVisible(false); };
 
     pad_.setEventSource(&proc.vizFeed());
 
@@ -149,13 +161,6 @@ void OrbitEditor::writeOrb(int i, float x, float y) {
 
 void OrbitEditor::paint(juce::Graphics& g) {
     g.fillAll(theme::panel);
-    // Header placeholder strip until the header controls land.
-    const float s = float(scale());
-    g.setGradientFill({ juce::Colour { 0xff0c0c14 }, 0.0f, 0.0f,
-                        juce::Colour { 0xff090910 }, 0.0f, float(theme::kHeaderH) * s, false });
-    g.fillRect(0.0f, 0.0f, float(getWidth()), float(theme::kHeaderH) * s);
-    g.setColour(theme::bone50.withAlpha(0.10f));
-    g.fillRect(0.0f, float(theme::kHeaderH) * s - 1.0f, float(getWidth()), 1.0f);
 }
 
 void OrbitEditor::resized() {
@@ -168,4 +173,6 @@ void OrbitEditor::resized() {
     placeScaled(pad_, 0, theme::kHeaderH, theme::kPadW, theme::kPadH);
     placeScaled(rail_, theme::kPadW, theme::kHeaderH, theme::kRailW, theme::kPadH);
     placeScaled(strip_, 0, theme::kHeaderH + theme::kPadH, theme::kWindowW, theme::kTapStripH);
+    placeScaled(header_, 0, 0, theme::kWindowW, theme::kHeaderH);
+    placeScaled(browser_, 0, 0, theme::kWindowW, theme::kWindowH);
 }

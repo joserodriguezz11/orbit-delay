@@ -160,6 +160,7 @@ TEST_CASE("render editor snapshot to /tmp", "[.snapshot]") {
 
     juce::PNGImageFormat png;
     juce::File out { "/tmp/orbit-editor-snapshot.png" };
+    out.deleteFile();   // FileOutputStream appends — stale bytes poison the PNG
     juce::FileOutputStream stream { out };
     REQUIRE(stream.openedOk());
     REQUIRE(png.writeImageToStream(img, stream));
