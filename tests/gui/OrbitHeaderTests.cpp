@@ -97,3 +97,11 @@ TEST_CASE("header children and the gear slot do not overlap at base size") {
     for (const auto& r : rects)
         CHECK(header.getLocalBounds().contains(r));
 }
+
+TEST_CASE("A/B slot buttons carry no LookAndFeel text (letters painted once)") {
+    juce::ScopedJuceInitialiser_GUI juceInit;
+    OrbitAudioProcessor proc;
+    OrbitHeader header { proc };
+    CHECK(header.slotAButton().getButtonText().isEmpty());
+    CHECK(header.slotBButton().getButtonText().isEmpty());
+}

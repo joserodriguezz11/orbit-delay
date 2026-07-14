@@ -188,7 +188,8 @@ void OrbitHeader::paint(juce::Graphics& g) {
                juce::Justification::centred, false);
 
     // A/B active states ride on top of the flat TextButtons.
-    const auto slotRing = [&] (const juce::TextButton& b, bool active) {
+    const auto slotRing = [&] (const juce::TextButton& b, const juce::String& letter,
+                               bool active) {
         const auto r = b.getBounds().toFloat();
         if (active) {
             g.setColour(theme::ember);
@@ -200,10 +201,10 @@ void OrbitHeader::paint(juce::Graphics& g) {
             g.setColour(theme::bone50.withAlpha(0.5f));
         }
         g.setFont(fonts::monoSemiBold(9.5f));
-        g.drawText(b.getButtonText(), r, juce::Justification::centred, false);
+        g.drawText(letter, r, juce::Justification::centred, false);
     };
-    slotRing(slotA_, !shownSlotB_);
-    slotRing(slotB_, shownSlotB_);
+    slotRing(slotA_, "A", !shownSlotB_);
+    slotRing(slotB_, "B", shownSlotB_);
 
     // Meter labels + right divider.
     g.setColour(theme::bone50.withAlpha(0.10f));

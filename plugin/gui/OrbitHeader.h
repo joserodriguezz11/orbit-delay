@@ -25,6 +25,8 @@ public:
 
     OrbitSeg& characterSeg() { return seg_; }
     OrbitPill& freezePill() { return freeze_; }
+    juce::TextButton& slotAButton() { return slotA_; }
+    juce::TextButton& slotBButton() { return slotB_; }
 
     void paint(juce::Graphics&) override;
     void resized() override;
@@ -40,7 +42,7 @@ private:
 
     juce::TextButton prev_ { juce::CharPointer_UTF8("\xe2\x80\xb9") },
                      next_ { juce::CharPointer_UTF8("\xe2\x80\xba") };
-    juce::TextButton slotA_ { "A" }, slotB_ { "B" };
+    juce::TextButton slotA_ { juce::String() }, slotB_ { juce::String() };
     OrbitSeg seg_;
     OrbitPill freeze_ { "FREEZE" };
     OrbitMeter inMeter_, outMeter_;
