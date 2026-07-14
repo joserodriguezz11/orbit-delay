@@ -221,12 +221,13 @@ void OrbitHeader::paint(juce::Graphics& g) {
         chevron(next_, false);
     }
 
-    // Settings gear: filled silhouette — eight rounded teeth around a solid
-    // body disc.
+    // Settings gear: filled silhouette — eight rounded teeth around a body
+    // ring with a punched axle hole. Composited in ONE transparency layer so
+    // the tooth/ring overlaps don't stack alpha (they read as bright dashes
+    // when filled separately at 0.55).
     {
         const auto c = gearBounds_.toFloat().getCentre();
-        const float rBody = 5.6f;
-        g.setColour(theme::bone50.withAlpha(0.55f));
+        const float rBody = 5.6f, rHole = 2.3f;
 
         juce::Path teeth;
         for (int i = 0; i < 8; ++i) {
@@ -236,8 +237,16 @@ void OrbitHeader::paint(juce::Graphics& g) {
             teeth.addPath(tooth, juce::AffineTransform::rotation(a)
                                      .translated(c.x, c.y));
         }
+        juce::Path body;
+        body.setUsingNonZeroWinding(false);   // outer minus hole = donut
+        body.addEllipse(c.x - rBody, c.y - rBody, rBody * 2.0f, rBody * 2.0f);
+        body.addEllipse(c.x - rHole, c.y - rHole, rHole * 2.0f, rHole * 2.0f);
+
+        g.beginTransparencyLayer(0.55f);
+        g.setColour(theme::bone50);
         g.fillPath(teeth);
-        g.fillEllipse(c.x - rBody, c.y - rBody, rBody * 2.0f, rBody * 2.0f);
+        g.fillPath(body);
+        g.endTransparencyLayer();
     }
 
     // Meter labels + right divider.
