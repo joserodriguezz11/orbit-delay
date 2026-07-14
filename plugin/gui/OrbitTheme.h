@@ -13,15 +13,16 @@
 namespace orbit::gui::theme {
 
 // ------------------------------------------------------------ layout metrics
-// The v2 window is 1180x720: a 52px header, the 990x572 orb pad beside a
-// 190px control rail, and a 96px tap strip. The four constants partition the
-// window exactly (asserted in OrbitThemeTests).
-inline constexpr int kWindowW   = 1180;
-inline constexpr int kWindowH   = 720;
+// Re-based 2026-07-14 (spec: phase3-ui-refinements): 900x550 window — a 52px
+// header, the 730x402 orb pad beside a 170px control rail, and a 96px tap
+// strip. Deliberate deviation from the 1180x720 mockup (README deviations).
+// The four constants partition the window exactly (asserted in OrbitThemeTests).
+inline constexpr int kWindowW   = 900;
+inline constexpr int kWindowH   = 550;
 inline constexpr int kHeaderH   = 52;
-inline constexpr int kPadW      = 990;
-inline constexpr int kPadH      = 572;
-inline constexpr int kRailW     = kWindowW - kPadW;   // 190
+inline constexpr int kPadW      = 730;
+inline constexpr int kPadH      = 402;
+inline constexpr int kRailW     = kWindowW - kPadW;   // 170
 inline constexpr int kTapStripH = kWindowH - kHeaderH - kPadH;  // 96
 
 // ---------------------------------------------------------------- colours

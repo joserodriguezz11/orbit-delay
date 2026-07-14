@@ -9,17 +9,16 @@ namespace theme = orbit::gui::theme;
 
 // ---------------------------------------------------------------- layout
 
-TEST_CASE("v2 layout metrics partition the 1180x720 window exactly") {
-    CHECK(theme::kWindowW == 1180);
-    CHECK(theme::kWindowH == 720);
-    // Vertical: header + orb pad + tap strip fill the window.
+TEST_CASE("layout metrics partition the 900x550 window exactly") {
+    CHECK(theme::kWindowW == 900);
+    CHECK(theme::kWindowH == 550);
+
     CHECK(theme::kHeaderH + theme::kPadH + theme::kTapStripH == theme::kWindowH);
-    // Horizontal: orb pad + right rail fill the window.
+
     CHECK(theme::kPadW + theme::kRailW == theme::kWindowW);
-    // Values pinned to the v2 mockup.
-    CHECK(theme::kHeaderH == 52);
-    CHECK(theme::kPadW == 990);
-    CHECK(theme::kPadH == 572);
+
+    CHECK(theme::kPadW == 730);
+    CHECK(theme::kPadH == 402);
     CHECK(theme::kTapStripH == 96);
 }
 
