@@ -64,6 +64,13 @@ bool scaleLabelVisible(juce::Rectangle<float> label,
         && !label.intersects(fbKnob.expanded(26.0f));
 }
 
+float watermarkHeight(float baseHeight, float stringWidthAtBase,
+                      float availableWidth) {
+    if (stringWidthAtBase <= availableWidth || stringWidthAtBase <= 0.0f)
+        return baseHeight;
+    return baseHeight * availableWidth / stringWidthAtBase;
+}
+
 } // namespace orbpad
 
 // ---------------------------------------------------------------- component
@@ -463,11 +470,17 @@ void OrbPad::paint(juce::Graphics& g) {
         g.fillRect(0.0f, 0.0f, W, H);
     }
 
-    // Watermark.
-    g.setFont(fonts::watermark(190.0f));
-    g.setColour(theme::bone50.withAlpha(0.032f));
-    g.drawText("ORBIT", juce::Rectangle<float>(0.0f, H / 2.0f + 8.0f - 95.0f, W, 190.0f),
-               juce::Justification::centred, false);
+    // Watermark — fitted so ORBIT never clips at any pad width.
+    {
+        const float wmBase = 190.0f;
+        const float wmW = fonts::watermark(wmBase).getStringWidthFloat("ORBIT");
+        const float wmH = orbpad::watermarkHeight(wmBase, wmW, W - 40.0f);
+        g.setFont(fonts::watermark(wmH));
+        g.setColour(theme::bone50.withAlpha(0.032f));
+        g.drawText("ORBIT",
+                   juce::Rectangle<float>(0.0f, H / 2.0f + 8.0f - wmH / 2.0f, W, wmH),
+                   juce::Justification::centred, false);
+    }
     // (removed) SYN·FX·001 — STEREO MULTI-TAP ECHO sub-line (spec: text removal)
 
     // Orbit rings; the ring passing near the selected orb lights up.

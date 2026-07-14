@@ -182,3 +182,13 @@ TEST_CASE("scale labels hide under a riding knob and return when it moves off") 
     // Left label well below the FEEDBACK knob — visible.
     CHECK(orbpad::scaleLabelVisible({ 9.0f, 320.0f, 24.0f, 10.0f }, timeKnob, fbKnob));
 }
+
+TEST_CASE("watermark height scales down to fit the pad, never up") {
+    // Wider than available: scales proportionally.
+    CHECK(orbpad::watermarkHeight(190.0f, 900.0f, 690.0f)
+          == Approx(190.0f * 690.0f / 900.0f));
+    // Fits already: stays at base height.
+    CHECK(orbpad::watermarkHeight(190.0f, 600.0f, 690.0f) == Approx(190.0f));
+    // Degenerate width: clamps to a positive floor, no divide-by-zero.
+    CHECK(orbpad::watermarkHeight(190.0f, 0.0f, 690.0f) == Approx(190.0f));
+}
