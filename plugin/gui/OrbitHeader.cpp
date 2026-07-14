@@ -199,26 +199,50 @@ void OrbitHeader::paint(juce::Graphics& g) {
     slotLetter(slotA_, "A", !shownSlotB_);
     slotLetter(slotB_, "B", shownSlotB_);
 
-    // Preset arrows: glyph-only (buttons are bare hit areas).
-    g.setColour(theme::bone50.withAlpha(0.6f));
-    g.setFont(fonts::mono(11.0f));
-    g.drawText(juce::String::fromUTF8("\xe2\x80\xb9"), prev_.getBounds().toFloat(),
-               juce::Justification::centred, false);
-    g.drawText(juce::String::fromUTF8("\xe2\x80\xba"), next_.getBounds().toFloat(),
-               juce::Justification::centred, false);
+    // Preset arrows: vector chevrons (buttons are bare hit areas). Drawn as
+    // paths, not font glyphs — Space Mono's coverage of the ‹ › guillemets
+    // is unreliable and rendered them partially.
+    {
+        const auto chevron = [&] (const juce::TextButton& b, bool pointsLeft) {
+            const auto c = b.getBounds().toFloat().getCentre();
+            const float hw = 1.8f, hh = 3.6f;   // half-width / half-height
+            const float tip = pointsLeft ? c.x - hw : c.x + hw;
+            const float back = pointsLeft ? c.x + hw : c.x - hw;
+            juce::Path p;
+            p.startNewSubPath(back, c.y - hh);
+            p.lineTo(tip, c.y);
+            p.lineTo(back, c.y + hh);
+            g.setColour(theme::bone50.withAlpha(0.6f));
+            g.strokePath(p, juce::PathStrokeType { 1.6f,
+                                                   juce::PathStrokeType::curved,
+                                                   juce::PathStrokeType::rounded });
+        };
+        chevron(prev_, true);
+        chevron(next_, false);
+    }
 
-    // Settings gear.
+    // Settings gear: filled silhouette — eight rounded teeth around a body
+    // ring with a punched axle hole (even-odd fill).
     {
         const auto c = gearBounds_.toFloat().getCentre();
+        const float rBody = 5.6f, rHole = 2.3f;
         g.setColour(theme::bone50.withAlpha(0.55f));
-        g.drawEllipse(c.x - 5.5f, c.y - 5.5f, 11.0f, 11.0f, 1.4f);
-        g.fillEllipse(c.x - 1.7f, c.y - 1.7f, 3.4f, 3.4f);
+
+        juce::Path teeth;
         for (int i = 0; i < 8; ++i) {
             const float a = juce::MathConstants<float>::pi * float(i) / 4.0f;
             juce::Path tooth;
-            tooth.addRectangle(c.x - 1.1f, c.y - 9.0f, 2.2f, 3.2f);
-            g.fillPath(tooth, juce::AffineTransform::rotation(a, c.x, c.y));
+            tooth.addRoundedRectangle(-1.5f, -(rBody + 2.4f), 3.0f, 3.4f, 1.1f);
+            teeth.addPath(tooth, juce::AffineTransform::rotation(a)
+                                     .translated(c.x, c.y));
         }
+        g.fillPath(teeth);
+
+        juce::Path body;
+        body.setUsingNonZeroWinding(false);   // outer minus hole = donut
+        body.addEllipse(c.x - rBody, c.y - rBody, rBody * 2.0f, rBody * 2.0f);
+        body.addEllipse(c.x - rHole, c.y - rHole, rHole * 2.0f, rHole * 2.0f);
+        g.fillPath(body);
     }
 
     // Meter labels + right divider.
