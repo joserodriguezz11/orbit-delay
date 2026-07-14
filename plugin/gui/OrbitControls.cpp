@@ -149,14 +149,11 @@ void OrbitKnob::paint(juce::Graphics& g) {
     g.strokePath(track, { arcW, juce::PathStrokeType::curved,
                           juce::PathStrokeType::rounded });
 
-    // Value dot: rides the track arc at the value angle (halo underneath).
+    // Value dot: rides the track arc at the value angle.
     {
         const auto dc = juce::Point<float>(cx, cy).getPointOnCircumference(r, rad(va));
         const float dotR = arcW * 0.9f;
-        const auto col = linked_ ? accent_ : theme::manual();
-        g.setColour(col.withAlpha(0.22f));
-        g.fillEllipse(dc.x - dotR * 2.2f, dc.y - dotR * 2.2f, dotR * 4.4f, dotR * 4.4f);
-        g.setColour(col);
+        g.setColour(linked_ ? accent_ : theme::manual());
         g.fillEllipse(dc.x - dotR, dc.y - dotR, dotR * 2.0f, dotR * 2.0f);
     }
 

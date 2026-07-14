@@ -8,9 +8,13 @@ namespace fonts = orbit::gui::fonts;
 namespace {
 constexpr int kCapsuleX = 130, kCapsuleW = 220, kCapsuleH = 30;
 
-// Round nav/slot buttons drawn flat in the header idiom.
+// Round nav/slot buttons drawn flat in the header idiom. The default
+// LookAndFeel unconditionally strokes a button outline with
+// ComboBox::outlineColourId — transparent kills the ring so only the
+// glyphs painted by OrbitHeader::paint show.
 void styleRound(juce::TextButton& b) {
     b.setColour(juce::TextButton::buttonColourId, juce::Colours::transparentBlack);
+    b.setColour(juce::ComboBox::outlineColourId, juce::Colours::transparentBlack);
     b.setColour(juce::TextButton::textColourOffId,
                 orbit::gui::theme::bone50.withAlpha(0.6f));
 }

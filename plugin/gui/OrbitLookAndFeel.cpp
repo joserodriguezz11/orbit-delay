@@ -34,12 +34,10 @@ void OrbitLookAndFeel::drawRotarySlider(juce::Graphics& g, int x, int y,
                                                juce::PathStrokeType::curved,
                                                juce::PathStrokeType::rounded });
 
-    // Value dot on the track at the current angle (halo underneath).
+    // Value dot on the track at the current angle.
     {
         const auto dc = centre.getPointOnCircumference(arcR, toAngle);
         const float dotR = lineW * 0.9f;
-        g.setColour(accent_.withAlpha(0.22f));
-        g.fillEllipse(dc.x - dotR * 2.2f, dc.y - dotR * 2.2f, dotR * 4.4f, dotR * 4.4f);
         g.setColour(accent_);
         g.fillEllipse(dc.x - dotR, dc.y - dotR, dotR * 2.0f, dotR * 2.0f);
     }
