@@ -119,3 +119,10 @@ TEST_CASE("selecting a row notifies once with the row index") {
     strip.selectRow(3);
     CHECK(selected == 3);
 }
+
+TEST_CASE("rail sections distribute evenly over the full column height") {
+    // Fixed content is 361 design px; three equal gaps absorb the rest.
+    CHECK(OrbitRail::sectionGap(402.0f) == Approx((402.0f - 361.0f) / 3.0f));
+    // Never collapses below the 6px floor, even in a too-short column.
+    CHECK(OrbitRail::sectionGap(300.0f) == Approx(6.0f));
+}

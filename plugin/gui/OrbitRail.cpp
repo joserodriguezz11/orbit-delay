@@ -8,9 +8,9 @@ namespace fonts = orbit::gui::fonts;
 namespace {
 
 // Design-pixel layout (aside: padding 14/16, sections stacked, header 13px
-// + 9 gap, knob row, 10px section gap). Section content y-origins below.
+// + 9 gap, knob row, computed section gap). Section content y-origins below.
 constexpr float kPadX = 16.0f;
-constexpr float kHeaderH = 13.0f, kHeaderGap = 9.0f, kSectionGap = 10.0f;
+constexpr float kHeaderH = 13.0f, kHeaderGap = 9.0f;
 constexpr float kLabelH = 12.0f, kKnobGap = 18.0f;
 
 struct KnobSpec {
@@ -42,6 +42,11 @@ const KnobSpec kSpecs[] = {
 
 } // namespace
 
+float OrbitRail::sectionGap(float railHeight) {
+    constexpr float kFixedContent = 361.0f;   // pads + headers + rows + labels
+    return std::max(6.0f, (railHeight - kFixedContent) / 3.0f);
+}
+
 OrbitRail::OrbitRail(juce::AudioProcessorValueTreeState& apvts,
                      std::function<float()> duckGainReduction)
     : duckMeter_(std::move(duckGainReduction), true,
@@ -65,6 +70,8 @@ OrbitRail::OrbitRail(juce::AudioProcessorValueTreeState& apvts,
 }
 
 void OrbitRail::resized() {
+    const float gap = sectionGap(float(getHeight()));
+
     // Sections: BLEND, SPACE, MOTION, FILTER from y=14, each header + row.
     float y = 14.0f + kHeaderH + kHeaderGap;
     const auto place = [&] (Knob which, float x, float rowH) {
@@ -78,18 +85,18 @@ void OrbitRail::resized() {
     place(Knob::Mix, kPadX, 56.0f);
     place(Knob::Duck, kPadX + 56.0f + kKnobGap, 56.0f);
     duckMeter_.setBounds(int(kPadX + 56.0f + kKnobGap), int(y + 56.0f + kLabelH + 3.0f), 44, 4);
-    y += 56.0f + kLabelH + 9.0f + kSectionGap + kHeaderH + kHeaderGap;
+    y += 56.0f + kLabelH + 9.0f + gap + kHeaderH + kHeaderGap;
 
     // SPACE: WIDTH 44 + P-PONG switch (centre-aligned with the knob).
     place(Knob::Width, kPadX, 44.0f);
     pingPong_.setBounds(int(kPadX + 44.0f + kKnobGap), int(y + (44.0f - OrbitSwitch::kHeight) / 2.0f),
                         OrbitSwitch::kWidth, OrbitSwitch::kHeight);
-    y += 44.0f + kLabelH + kSectionGap + kHeaderH + kHeaderGap;
+    y += 44.0f + kLabelH + gap + kHeaderH + kHeaderGap;
 
     // MOTION: DEPTH + RATE.
     place(Knob::ModDepth, kPadX, 44.0f);
     place(Knob::ModRate, kPadX + 44.0f + kKnobGap, 44.0f);
-    y += 44.0f + kLabelH + kSectionGap + kHeaderH + kHeaderGap;
+    y += 44.0f + kLabelH + gap + kHeaderH + kHeaderGap;
 
     // FILTER: LO CUT + HI CUT.
     place(Knob::LowCut, kPadX, 44.0f);
@@ -97,6 +104,7 @@ void OrbitRail::resized() {
 }
 
 void OrbitRail::paint(juce::Graphics& g) {
+    const float gap = sectionGap(float(getHeight()));
     const float W = float(getWidth()), H = float(getHeight());
 
     // Panel: vertical gradient + left hairline.
@@ -134,7 +142,7 @@ void OrbitRail::paint(juce::Graphics& g) {
     y += kHeaderH + kHeaderGap;
     knobLabel("MIX", Knob::Mix);
     knobLabel("DUCK", Knob::Duck);
-    y += 56.0f + kLabelH + 9.0f + kSectionGap;
+    y += 56.0f + kLabelH + 9.0f + gap;
 
     sectionHead("SPACE", y);
     y += kHeaderH + kHeaderGap;
@@ -149,31 +157,15 @@ void OrbitRail::paint(juce::Graphics& g) {
                                           float(pingPong_.getWidth()) + 16.0f, 10.0f),
                    juce::Justification::centred, false);
     }
-    y += 44.0f + kLabelH + kSectionGap;
+    y += 44.0f + kLabelH + gap;
 
     sectionHead("MOTION", y);
     y += kHeaderH + kHeaderGap;
     knobLabel("DEPTH", Knob::ModDepth);
     knobLabel("RATE", Knob::ModRate);
-    y += 44.0f + kLabelH + kSectionGap;
+    y += 44.0f + kLabelH + gap;
 
     sectionHead("FILTER", y);
     knobLabel("LO CUT", Knob::LowCut);
     knobLabel("HI CUT", Knob::HighCut);
-
-    // Footer: mark + catalogue number.
-    {
-        const float fy = H - 24.0f;
-        g.setColour(theme::bone50.withAlpha(0.4f));
-        g.drawEllipse(kPadX, fy, 12.0f, 12.0f, 1.2f);
-        g.setColour(theme::ember.withAlpha(0.4f));
-        g.fillEllipse(kPadX + 4.5f, fy + 4.5f, 3.0f, 3.0f);
-        g.setFont(fonts::tracked(fonts::mono(7.0f), 0.24f));
-        g.setColour(theme::bone50.withAlpha(0.32f));
-        g.drawText(juce::String::fromUTF8("SYN\xc2\xb7""FX\xc2\xb7""001"),
-                   juce::Rectangle<float>(kPadX + 20.0f, fy + 1.0f, 80.0f, 10.0f),
-                   juce::Justification::centredLeft, false);
-        g.drawText("MK I", juce::Rectangle<float>(W - 50.0f, fy + 1.0f, 34.0f, 10.0f),
-                   juce::Justification::centredRight, false);
-    }
 }

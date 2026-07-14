@@ -5,9 +5,9 @@
 
 // The 190px control rail beside the orb pad: BLEND (mix, duck + gain-
 // reduction meter), SPACE (width, ping-pong), MOTION (depth, rate), FILTER
-// (low/high cut), then the SYN·FX·001 footer. All controls bind to the APVTS
-// through attachments; value text uses the mockup formatters. Laid out in
-// design pixels — the editor scales the whole component with a transform.
+// (low/high cut). All controls bind to the APVTS through attachments; value
+// text uses the mockup formatters. Laid out in design pixels — the editor
+// scales the whole component with a transform.
 class OrbitRail : public juce::Component {
 public:
     enum class Knob { Mix, Duck, Width, ModDepth, ModRate, LowCut, HighCut };
@@ -15,6 +15,10 @@ public:
 
     OrbitRail(juce::AudioProcessorValueTreeState& apvts,
               std::function<float()> duckGainReduction);
+
+    // Even vertical distribution: the gap between sections that fills
+    // railHeight exactly (fixed content = 361 design px), floored at 6.
+    static float sectionGap(float railHeight);
 
     OrbitKnob& knob(Knob which) { return knobs_[size_t(which)]; }
     OrbitSwitch& pingPong() { return pingPong_; }
