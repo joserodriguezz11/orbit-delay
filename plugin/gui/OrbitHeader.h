@@ -13,6 +13,7 @@ public:
     explicit OrbitHeader(OrbitAudioProcessor& proc);
 
     std::function<void()> onBrowserToggle;
+    std::function<void()> onSettingsToggle;
 
     // Preset navigation over factory + user presets (wraps at the ends).
     void nextPreset() { stepPreset(1); }

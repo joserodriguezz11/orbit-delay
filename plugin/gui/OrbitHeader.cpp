@@ -115,6 +115,8 @@ void OrbitHeader::resized() {
 void OrbitHeader::mouseUp(const juce::MouseEvent& e) {
     if (presetCapsule_.contains(e.getPosition()) && onBrowserToggle != nullptr)
         onBrowserToggle();
+    else if (gearBounds_.contains(e.getPosition()) && onSettingsToggle != nullptr)
+        onSettingsToggle();
 }
 
 void OrbitHeader::paint(juce::Graphics& g) {
@@ -205,6 +207,20 @@ void OrbitHeader::paint(juce::Graphics& g) {
     };
     slotRing(slotA_, "A", !shownSlotB_);
     slotRing(slotB_, "B", shownSlotB_);
+
+    // Settings gear.
+    {
+        const auto c = gearBounds_.toFloat().getCentre();
+        g.setColour(theme::bone50.withAlpha(0.55f));
+        g.drawEllipse(c.x - 5.5f, c.y - 5.5f, 11.0f, 11.0f, 1.4f);
+        g.fillEllipse(c.x - 1.7f, c.y - 1.7f, 3.4f, 3.4f);
+        for (int i = 0; i < 8; ++i) {
+            const float a = juce::MathConstants<float>::pi * float(i) / 4.0f;
+            juce::Path tooth;
+            tooth.addRectangle(c.x - 1.1f, c.y - 9.0f, 2.2f, 3.2f);
+            g.fillPath(tooth, juce::AffineTransform::rotation(a, c.x, c.y));
+        }
+    }
 
     // Meter labels + right divider.
     g.setColour(theme::bone50.withAlpha(0.10f));

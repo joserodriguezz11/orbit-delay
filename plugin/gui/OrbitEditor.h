@@ -6,6 +6,7 @@
 #include "gui/OrbitHeader.h"
 #include "gui/OrbitPresetBrowser.h"
 #include "gui/OrbitRail.h"
+#include "gui/OrbitSettingsPanel.h"
 #include "gui/OrbitTapStrip.h"
 #include "gui/OrbitTheme.h"
 
@@ -32,6 +33,7 @@ public:
     OrbitRail& rail() { return rail_; }
     OrbitHeader& header() { return header_; }
     OrbitPresetBrowser& presetBrowser() { return browser_; }
+    OrbitSettingsPanel& settingsPanel() { return settings_; }
 
     void paint(juce::Graphics&) override;
     void resized() override;
@@ -49,6 +51,7 @@ private:
     OrbitTapStrip strip_;
     OrbitHeader header_;
     OrbitPresetBrowser browser_;
+    OrbitSettingsPanel settings_;
 
     // Per-tap view attachments (time/feedback/sync/enabled/reverse) plus
     // character + freeze; all funnel into refreshTap()/pad setters.

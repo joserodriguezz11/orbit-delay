@@ -36,14 +36,22 @@ OrbitEditor::OrbitEditor(OrbitAudioProcessor& proc)
     addAndMakeVisible(strip_);
     addAndMakeVisible(header_);
     addChildComponent(browser_);   // hidden until the capsule opens it
+    addChildComponent(settings_);  // hidden until the gear opens it
 
     header_.onBrowserToggle = [this] {
         if (!browser_.isVisible())
             browser_.refresh();    // pick up user presets saved mid-session
+        settings_.setVisible(false);
         browser_.setVisible(!browser_.isVisible());
         browser_.toFront(false);
     };
     browser_.onClose = [this] { browser_.setVisible(false); };
+    header_.onSettingsToggle = [this] {
+        browser_.setVisible(false);
+        settings_.setVisible(!settings_.isVisible());
+        settings_.toFront(false);
+    };
+    settings_.onClose = [this] { settings_.setVisible(false); };
 
     pad_.setEventSource(&proc.vizFeed());
 
@@ -179,4 +187,5 @@ void OrbitEditor::resized() {
     placeScaled(strip_, 0, theme::kHeaderH + theme::kPadH, theme::kWindowW, theme::kTapStripH);
     placeScaled(header_, 0, 0, theme::kWindowW, theme::kHeaderH);
     placeScaled(browser_, 0, 0, theme::kWindowW, theme::kWindowH);
+    placeScaled(settings_, 0, 0, theme::kWindowW, theme::kWindowH);
 }
