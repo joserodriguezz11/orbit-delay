@@ -57,6 +57,13 @@ float stepHeat(float heat, float target01, float dt) {
     return heat < 0.004f ? 0.0f : heat;
 }
 
+bool scaleLabelVisible(juce::Rectangle<float> label,
+                       juce::Rectangle<float> timeKnob,
+                       juce::Rectangle<float> fbKnob) {
+    return !label.intersects(timeKnob.expanded(26.0f))
+        && !label.intersects(fbKnob.expanded(26.0f));
+}
+
 } // namespace orbpad
 
 // ---------------------------------------------------------------- component
@@ -461,11 +468,7 @@ void OrbPad::paint(juce::Graphics& g) {
     g.setColour(theme::bone50.withAlpha(0.032f));
     g.drawText("ORBIT", juce::Rectangle<float>(0.0f, H / 2.0f + 8.0f - 95.0f, W, 190.0f),
                juce::Justification::centred, false);
-    g.setFont(fonts::tracked(fonts::monoMedium(9.5f), 0.21f));
-    g.setColour(theme::bone50.withAlpha(0.055f));
-    g.drawText(juce::String::fromUTF8("SYN\xc2\xb7""FX\xc2\xb7""001 \xe2\x80\x94 STEREO MULTI-TAP ECHO"),
-               juce::Rectangle<float>(0.0f, H / 2.0f + 112.0f - 6.0f, W, 12.0f),
-               juce::Justification::centred, false);
+    // (removed) SYN·FX·001 — STEREO MULTI-TAP ECHO sub-line (spec: text removal)
 
     // Orbit rings; the ring passing near the selected orb lights up.
     {
@@ -575,6 +578,8 @@ void OrbPad::paint(juce::Graphics& g) {
 
     // Etched rulers: time (bottom) and feedback (left).
     {
+        const auto tkb = timeKnob_.getBounds().toFloat();
+        const auto fkb = fbKnob_.getBounds().toFloat();
         g.setFont(fonts::monoSemiBold(8.0f));
         const struct { float ms; const char* label; } ticks[] = {
             { 50.0f, "50" }, { 100.0f, "100" }, { 200.0f, "200" },
@@ -583,18 +588,23 @@ void OrbPad::paint(juce::Graphics& g) {
             const float gx = std::round(theme::msToX(tk.ms) * W) + 0.5f;
             g.setColour(theme::bone50.withAlpha(0.20f));
             g.fillRect(gx - 0.5f, H - 6.0f, 1.0f, 6.0f);
-            g.setColour(theme::bone50.withAlpha(0.28f));
-            g.drawText(tk.label, juce::Rectangle<float>(gx - 30.0f, H - 19.0f, 60.0f, 10.0f),
-                       juce::Justification::centred, false);
+            const juce::Rectangle<float> lr { gx - 30.0f, H - 19.0f, 60.0f, 10.0f };
+            if (orbpad::scaleLabelVisible(lr, tkb, fkb)) {
+                g.setColour(theme::bone50.withAlpha(0.28f));
+                g.drawText(tk.label, lr,
+                           juce::Justification::centred, false);
+            }
         }
         for (const float fb : { 25.0f, 50.0f, 75.0f }) {
             const float py = std::round((1.0f - fb / 95.0f) * H) + 0.5f;
             g.setColour(theme::bone50.withAlpha(0.20f));
             g.fillRect(0.0f, py - 0.5f, 6.0f, 1.0f);
-            g.setColour(theme::bone50.withAlpha(0.28f));
-            g.drawText(juce::String(int(fb)),
-                       juce::Rectangle<float>(9.0f, py - 5.0f, 24.0f, 10.0f),
-                       juce::Justification::centredLeft, false);
+            const juce::Rectangle<float> lr { 9.0f, py - 5.0f, 24.0f, 10.0f };
+            if (orbpad::scaleLabelVisible(lr, tkb, fkb)) {
+                g.setColour(theme::bone50.withAlpha(0.28f));
+                g.drawText(juce::String(int(fb)), lr,
+                           juce::Justification::centredLeft, false);
+            }
         }
     }
 

@@ -167,3 +167,18 @@ TEST_CASE("synced taps flip the TIME knob into stepped division mode") {
     pad.timeKnob().setValue(0.0, juce::sendNotificationSync);
     CHECK(mx == Catch::Approx(msToX(250.0f)).margin(1e-4));
 }
+
+TEST_CASE("scale labels hide under a riding knob and return when it moves off") {
+    const juce::Rectangle<float> timeKnob { 300.0f, 308.0f, 56.0f, 56.0f };
+    const juce::Rectangle<float> fbKnob   {  28.0f, 120.0f, 56.0f, 56.0f };
+
+    // Bottom ms label directly under the TIME knob — hidden (26px halo).
+    CHECK(!orbpad::scaleLabelVisible({ 298.0f, 383.0f, 60.0f, 10.0f }, timeKnob, fbKnob));
+    // Same label with TIME knob far away — visible.
+    CHECK(orbpad::scaleLabelVisible({ 298.0f, 383.0f, 60.0f, 10.0f },
+                                    { 600.0f, 308.0f, 56.0f, 56.0f }, fbKnob));
+    // Left 50% label beside the FEEDBACK knob — hidden.
+    CHECK(!orbpad::scaleLabelVisible({ 9.0f, 145.0f, 24.0f, 10.0f }, timeKnob, fbKnob));
+    // Left label well below the FEEDBACK knob — visible.
+    CHECK(orbpad::scaleLabelVisible({ 9.0f, 320.0f, 24.0f, 10.0f }, timeKnob, fbKnob));
+}

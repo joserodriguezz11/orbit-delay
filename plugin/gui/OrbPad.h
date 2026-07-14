@@ -40,6 +40,12 @@ bool shouldGlide(float vx, float vy);
 // Drag heat: attacks at rate 9, releases at 2.2, snaps to zero under 0.004.
 float stepHeat(float heat, float target01, float dt);
 
+// Scale-label suppression: a ruler label hides while a riding knob (56px,
+// with its ~26px scrim/label halo) overlaps it, and returns when clear.
+bool scaleLabelVisible(juce::Rectangle<float> label,
+                       juce::Rectangle<float> timeKnob,
+                       juce::Rectangle<float> fbKnob);
+
 } // namespace orbpad
 
 // The 990x572 orb field: character-themed background, orbit rings, watermark,
