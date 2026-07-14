@@ -5,6 +5,7 @@
 #include <catch2/catch_test_macros.hpp>
 #include <catch2/catch_approx.hpp>
 #include "gui/OrbPad.h"
+#include "gui/OrbitTheme.h"
 
 using Catch::Approx;
 
@@ -19,9 +20,9 @@ TEST_CASE("hitTest picks the nearest orb within 30 design px") {
     CHECK(orbpad::hitTest(taps, 0.517f, 0.50f) == 2);
     // Far from everything: no hit.
     CHECK(orbpad::hitTest(taps, 0.30f, 0.05f) == -1);
-    // 30px radius: 0.10 + 29/990 hits tap 0; +31/990 just misses on x.
-    CHECK(orbpad::hitTest(taps, 0.10f + 29.0f / 990.0f, 0.50f) == 0);
-    CHECK(orbpad::hitTest(taps, 0.10f + 31.0f / 990.0f, 0.05f) == -1);
+    // 30px radius: 0.10 + 29/kPadW hits tap 0; +31/kPadW just misses on x.
+    CHECK(orbpad::hitTest(taps, 0.10f + 29.0f / float(orbit::gui::theme::kPadW), 0.50f) == 0);
+    CHECK(orbpad::hitTest(taps, 0.10f + 31.0f / float(orbit::gui::theme::kPadW), 0.05f) == -1);
 }
 
 // ------------------------------------------------------------------ glide
