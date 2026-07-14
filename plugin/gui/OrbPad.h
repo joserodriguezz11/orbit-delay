@@ -46,6 +46,10 @@ bool scaleLabelVisible(juce::Rectangle<float> label,
                        juce::Rectangle<float> timeKnob,
                        juce::Rectangle<float> fbKnob);
 
+// Watermark fit: the height that renders a string measured at baseHeight
+// into availableWidth — scales down proportionally, never up.
+float watermarkHeight(float baseHeight, float stringWidthAtBase, float availableWidth);
+
 } // namespace orbpad
 
 // The orb field (kPadW x kPadH): character-themed background, orbit rings, watermark,
