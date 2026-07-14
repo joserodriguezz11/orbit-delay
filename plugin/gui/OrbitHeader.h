@@ -20,6 +20,9 @@ public:
     // Activates a slot: true = B. Clicking the live slot is a no-op.
     void selectSlot(bool slotB);
 
+    // Reserved hit area for the settings gear (wired in the settings task).
+    juce::Rectangle<int> gearBounds() const { return gearBounds_; }
+
     OrbitSeg& characterSeg() { return seg_; }
     OrbitPill& freezePill() { return freeze_; }
 
@@ -45,6 +48,7 @@ private:
     std::unique_ptr<juce::AudioProcessorValueTreeState::ButtonAttachment> freezeAtt_;
 
     juce::Rectangle<int> presetCapsule_;   // click target for the browser
+    juce::Rectangle<int> gearBounds_;
     juce::String shownPresetName_;
     bool shownDirty_ = false, shownSlotB_ = false;
 

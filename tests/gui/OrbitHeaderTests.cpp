@@ -75,3 +75,25 @@ TEST_CASE("preset browser filters by tag and loads on pick") {
     browser.setTagFilter({});   // back to ALL
     CHECK(browser.visibleCount() == 40);
 }
+
+TEST_CASE("header children and the gear slot do not overlap at base size") {
+    juce::ScopedJuceInitialiser_GUI juceInit;
+    OrbitAudioProcessor proc;
+    OrbitHeader header { proc };
+    header.setBounds(0, 0, orbit::gui::theme::kWindowW, orbit::gui::theme::kHeaderH);
+
+    std::vector<juce::Rectangle<int>> rects;
+    for (auto* c : header.getChildren())
+        if (c->isVisible() && !c->getBounds().isEmpty())
+            rects.push_back(c->getBounds());
+    rects.push_back(header.gearBounds());
+
+    for (size_t i = 0; i < rects.size(); ++i)
+        for (size_t j = i + 1; j < rects.size(); ++j) {
+            INFO("rect " << int(i) << " vs " << int(j));
+            CHECK(!rects[i].intersects(rects[j]));
+        }
+    // Everything must fit inside the header.
+    for (const auto& r : rects)
+        CHECK(header.getLocalBounds().contains(r));
+}

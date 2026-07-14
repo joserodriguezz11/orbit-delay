@@ -6,7 +6,7 @@ namespace theme = orbit::gui::theme;
 namespace fonts = orbit::gui::fonts;
 
 namespace {
-constexpr int kCapsuleX = 130, kCapsuleW = 246, kCapsuleH = 30;
+constexpr int kCapsuleX = 130, kCapsuleW = 220, kCapsuleH = 30;
 
 // Round nav/slot buttons drawn flat in the header idiom.
 void styleRound(juce::TextButton& b) {
@@ -103,12 +103,13 @@ void OrbitHeader::resized() {
     slotA_.setBounds(kCapsuleX + kCapsuleW + 10, (52 - 24) / 2, 24, 24);
     slotB_.setBounds(kCapsuleX + kCapsuleW + 38, (52 - 24) / 2, 24, 24);
 
-    // Right side, leaving room for the meters block (design order).
+    // Right side: seg, freeze, gear slot, divider, meters (design order).
     const int W = theme::kWindowW;
     seg_.setBounds(W - 290 - 156, (52 - 28) / 2, 156, 28);
     freeze_.setBounds(W - 290 + 10, (52 - 26) / 2, 66, 26);
-    inMeter_.setBounds(W - 46, 8, 5, 26);
-    outMeter_.setBounds(W - 33, 8, 5, 26);
+    gearBounds_ = { W - 110, (52 - 26) / 2, 26, 26 };
+    inMeter_.setBounds(W - 46, 8, 5, 24);
+    outMeter_.setBounds(W - 33, 8, 5, 24);
 }
 
 void OrbitHeader::mouseUp(const juce::MouseEvent& e) {
@@ -179,6 +180,13 @@ void OrbitHeader::paint(juce::Graphics& g) {
                    juce::Justification::centred, false);
     }
 
+    // PRESETS caption under the capsule (same idiom as the logo tagline).
+    g.setFont(fonts::tracked(fonts::mono(6.5f), 0.32f));
+    g.setColour(theme::bone50.withAlpha(0.42f));
+    g.drawText("PRESETS",
+               juce::Rectangle<float>(float(kCapsuleX), 43.0f, float(kCapsuleW), 7.0f),
+               juce::Justification::centred, false);
+
     // A/B active states ride on top of the flat TextButtons.
     const auto slotRing = [&] (const juce::TextButton& b, bool active) {
         const auto r = b.getBounds().toFloat();
@@ -202,8 +210,8 @@ void OrbitHeader::paint(juce::Graphics& g) {
     g.fillRect(float(theme::kWindowW - 60), (H - 22.0f) / 2.0f, 1.0f, 22.0f);
     g.setFont(fonts::tracked(fonts::mono(6.5f), 0.2f));
     g.setColour(theme::bone50.withAlpha(0.4f));
-    g.drawText("IN", juce::Rectangle<float>(float(theme::kWindowW - 50), 37.0f, 13.0f, 7.0f),
+    g.drawText("IN", juce::Rectangle<float>(float(theme::kWindowW - 50), 38.0f, 13.0f, 7.0f),
                juce::Justification::centred, false);
-    g.drawText("OUT", juce::Rectangle<float>(float(theme::kWindowW - 38), 37.0f, 15.0f, 7.0f),
+    g.drawText("OUT", juce::Rectangle<float>(float(theme::kWindowW - 38), 38.0f, 15.0f, 7.0f),
                juce::Justification::centred, false);
 }
