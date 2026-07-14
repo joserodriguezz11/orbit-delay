@@ -69,14 +69,13 @@ void OrbitSettingsPanel::paint(juce::Graphics& g) {
     y += 26.0f;
     g.setFont(fonts::sansSemiBold(14.0f));
     g.setColour(theme::text());
-    g.drawText("ORBIT - 4-tap echo",
+    g.drawText("ORBIT",
                juce::Rectangle<float>(panel.getX() + 27.0f, y, 300.0f, 16.0f),
                juce::Justification::centredLeft, false);
     y += 20.0f;
     g.setFont(fonts::mono(9.5f));
     g.setColour(theme::bone50.withAlpha(0.55f));
-    g.drawText(juce::String("Version ") + JucePlugin_VersionString
-                   + "  -  Synthios Records",
+    g.drawText(juce::String("Version ") + JucePlugin_VersionString,
                juce::Rectangle<float>(panel.getX() + 27.0f, y, 400.0f, 12.0f),
                juce::Justification::centredLeft, false);
     y += 30.0f;

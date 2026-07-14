@@ -105,3 +105,11 @@ TEST_CASE("A/B slot buttons carry no LookAndFeel text (letters painted once)") {
     CHECK(header.slotAButton().getButtonText().isEmpty());
     CHECK(header.slotBButton().getButtonText().isEmpty());
 }
+
+TEST_CASE("preset arrows carry no LookAndFeel text (glyphs painted once)") {
+    juce::ScopedJuceInitialiser_GUI juceInit;
+    OrbitAudioProcessor proc;
+    OrbitHeader header { proc };
+    CHECK(header.prevButton().getButtonText().isEmpty());
+    CHECK(header.nextButton().getButtonText().isEmpty());
+}

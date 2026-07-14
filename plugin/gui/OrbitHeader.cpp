@@ -144,10 +144,6 @@ void OrbitHeader::paint(juce::Graphics& g) {
         g.drawText("ORBIT", juce::Rectangle<float>(51.0f, 15.0f, 90.0f, 16.0f),
                    juce::Justification::centredLeft, false);
     }
-    g.setFont(fonts::tracked(fonts::mono(6.5f), 0.32f));
-    g.setColour(theme::bone50.withAlpha(0.42f));
-    g.drawText("4-TAP ECHO", juce::Rectangle<float>(51.0f, 33.0f, 90.0f, 7.0f),
-               juce::Justification::centredLeft, false);
 
     // Preset capsule.
     {
@@ -189,24 +185,23 @@ void OrbitHeader::paint(juce::Graphics& g) {
                juce::Rectangle<float>(float(kCapsuleX), 43.0f, float(kCapsuleW), 7.0f),
                juce::Justification::centred, false);
 
-    // A/B active states ride on top of the flat TextButtons.
-    const auto slotRing = [&] (const juce::TextButton& b, const juce::String& letter,
-                               bool active) {
-        const auto r = b.getBounds().toFloat();
-        if (active) {
-            g.setColour(theme::ember);
-            g.fillEllipse(r);
-            g.setColour(theme::text());
-        } else {
-            g.setColour(theme::bone50.withAlpha(0.16f));
-            g.drawEllipse(r.reduced(0.5f), 1.0f);
-            g.setColour(theme::bone50.withAlpha(0.5f));
-        }
+    // A/B: letters only — active slot reads in ember, inactive dim bone.
+    const auto slotLetter = [&] (const juce::TextButton& b, const juce::String& letter,
+                                 bool active) {
+        g.setColour(active ? theme::ember : theme::bone50.withAlpha(0.5f));
         g.setFont(fonts::monoSemiBold(9.5f));
-        g.drawText(letter, r, juce::Justification::centred, false);
+        g.drawText(letter, b.getBounds().toFloat(), juce::Justification::centred, false);
     };
-    slotRing(slotA_, "A", !shownSlotB_);
-    slotRing(slotB_, "B", shownSlotB_);
+    slotLetter(slotA_, "A", !shownSlotB_);
+    slotLetter(slotB_, "B", shownSlotB_);
+
+    // Preset arrows: glyph-only (buttons are bare hit areas).
+    g.setColour(theme::bone50.withAlpha(0.6f));
+    g.setFont(fonts::mono(11.0f));
+    g.drawText(juce::String::fromUTF8("\xe2\x80\xb9"), prev_.getBounds().toFloat(),
+               juce::Justification::centred, false);
+    g.drawText(juce::String::fromUTF8("\xe2\x80\xba"), next_.getBounds().toFloat(),
+               juce::Justification::centred, false);
 
     // Settings gear.
     {

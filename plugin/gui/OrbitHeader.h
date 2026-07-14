@@ -28,6 +28,8 @@ public:
     OrbitPill& freezePill() { return freeze_; }
     juce::TextButton& slotAButton() { return slotA_; }
     juce::TextButton& slotBButton() { return slotB_; }
+    juce::TextButton& prevButton() { return prev_; }
+    juce::TextButton& nextButton() { return next_; }
 
     void paint(juce::Graphics&) override;
     void resized() override;
@@ -41,8 +43,7 @@ private:
 
     OrbitAudioProcessor& proc_;
 
-    juce::TextButton prev_ { juce::CharPointer_UTF8("\xe2\x80\xb9") },
-                     next_ { juce::CharPointer_UTF8("\xe2\x80\xba") };
+    juce::TextButton prev_ { juce::String() }, next_ { juce::String() };
     juce::TextButton slotA_ { juce::String() }, slotB_ { juce::String() };
     OrbitSeg seg_;
     OrbitPill freeze_ { "FREEZE" };
