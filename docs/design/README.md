@@ -30,6 +30,14 @@ Deliberate deviations from the mockup (all UI-side, engine-faithful):
   the mockup only simulated meter motion.
 - Tap time/feedback parameters accept host automation outside the pad's
   visual range (1–2000ms / 0–0.98); the pad clamps display at its edges.
+- **Window re-based to 900x550** (mockup remains 1180x720): 52px header,
+  730x402 pad, 170px rail, 96px strip. True re-layout, not a uniform scale —
+  type sizes kept, spacing tightened, rail sections distribute evenly.
+- **Removed** the pad's SYN·FX·001 — STEREO MULTI-TAP ECHO sub-line and the
+  rail's SYN·FX·001 / MK I footer stamp.
+- **Added** (not in mockup): header settings gear opening an About / How to
+  Use overlay (preset-browser idiom), and a PRESETS caption under the preset
+  capsule.
 
 ## Fonts
 
