@@ -15,7 +15,7 @@ namespace orbit::gui::theme {
 // ------------------------------------------------------------ layout metrics
 // Re-based 2026-07-14 (spec: phase3-ui-refinements): 900x550 window — a 52px
 // header, the 730x402 orb pad beside a 170px control rail, and a 96px tap
-// strip. Deliberate deviation from the 1180x720 mockup (README deviations).
+// strip. Deliberate deviation from the Full v2 mockup (README deviations).
 // The four constants partition the window exactly (asserted in OrbitThemeTests).
 inline constexpr int kWindowW   = 900;
 inline constexpr int kWindowH   = 550;

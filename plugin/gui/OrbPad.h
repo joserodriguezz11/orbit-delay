@@ -15,7 +15,7 @@ namespace orbpad {
 
 struct TapPos { float x, y; };  // normalized, y-up (1 = top of the field)
 
-// Nearest orb within 30 design px of the pointer (990x572 field), else -1.
+// Nearest orb within 30 design px of the pointer (kPadW x kPadH field), else -1.
 // Disabled taps are still grabbable, so all four positions participate.
 int hitTest(const std::array<TapPos, 4>& taps, float nx, float ny);
 
@@ -48,7 +48,7 @@ bool scaleLabelVisible(juce::Rectangle<float> label,
 
 } // namespace orbpad
 
-// The 990x572 orb field: character-themed background, orbit rings, watermark,
+// The orb field (kPadW x kPadH): character-themed background, orbit rings, watermark,
 // position-coloured tap halos and orbs, crosshair + etched rulers, drag trails
 // with heat bloom, flick-to-throw with bounce flashes and spark bursts, and
 // (beyond the static mockup) halo pulses from the engine's real TapFireEvents.

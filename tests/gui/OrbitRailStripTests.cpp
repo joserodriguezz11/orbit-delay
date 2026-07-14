@@ -120,6 +120,37 @@ TEST_CASE("selecting a row notifies once with the row index") {
     CHECK(selected == 3);
 }
 
+TEST_CASE("tap strip pills and pitch knob don't overlap at the 900px window width") {
+    // Regression guard for the 900x550 window rebase: each card shrank from
+    // 281px to ~211px and a fixed pillX offset let the PITCH knob overlap
+    // the SYNC/REV pills by 11px. dot/sync/rev/pitch are siblings within the
+    // same row (card), so their getBounds() share one coordinate space and
+    // are directly comparable without translating into strip-space.
+    juce::ScopedJuceInitialiser_GUI juceInit;
+    TestProcessor proc;
+    OrbitTapStrip strip { proc.apvts, [] { return 120.0; } };
+    strip.setBounds(0, 0, orbit::gui::theme::kWindowW, orbit::gui::theme::kTapStripH);
+
+    for (int i = 0; i < 4; ++i) {
+        const std::vector<juce::Rectangle<int>> rects {
+            strip.dot(i).getBounds(),
+            strip.syncPill(i).getBounds(),
+            strip.revPill(i).getBounds(),
+            strip.pitchKnob(i).getBounds(),
+        };
+        for (size_t a = 0; a < rects.size(); ++a)
+            for (size_t b = a + 1; b < rects.size(); ++b) {
+                INFO("tap " << i << ": rect " << int(a) << " vs " << int(b));
+                CHECK_FALSE(rects[a].intersects(rects[b]));
+            }
+        // >=6px clearance between the pills' right edge and the knob's left
+        // edge — the specific gap that regressed.
+        INFO("tap " << i);
+        CHECK(strip.pitchKnob(i).getX() - strip.syncPill(i).getRight() >= 6);
+        CHECK(strip.pitchKnob(i).getX() - strip.revPill(i).getRight() >= 6);
+    }
+}
+
 TEST_CASE("rail sections distribute evenly over the full column height") {
     // Fixed content is 361 design px; three equal gaps absorb the rest.
     CHECK(OrbitRail::sectionGap(402.0f) == Approx((402.0f - 361.0f) / 3.0f));

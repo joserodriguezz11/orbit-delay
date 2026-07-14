@@ -108,11 +108,29 @@ public:
     void resized() override {
         // Design: padding 0 14, dot 26 centred, pills column, pitch right.
         const int h = getHeight();
+        const int w = getWidth();
         dot_.setBounds(14, (h - 26) / 2, 26, 26);
-        const int pillX = 14 + 26 + 12 + 64 + 12;
-        sync_.setBounds(pillX, h / 2 - 22, 46, 20);
-        rev_.setBounds(pillX, h / 2 + 2, 46, 20);
-        pitch_.setBounds(getWidth() - 14 - 34, (h - 34) / 2 - 4, 34, 34);
+
+        // Pitch knob stays right-anchored on the card's right margin.
+        constexpr int pitchW = 34;
+        const int pitchX = w - 14 - pitchW;
+        pitch_.setBounds(pitchX, (h - pitchW) / 2 - 4, pitchW, pitchW);
+
+        // Pills are right-anchored to the pitch knob with a fixed clearance,
+        // rather than a left-anchored fixed offset — at the narrower ~211px
+        // card (900px window rebase) a fixed pillX collided with the knob.
+        // Clearance comfortably clears the >=6px requirement.
+        constexpr int pillW = 40;
+        constexpr int pillClearance = 7;
+        const int pillX = pitchX - pillClearance - pillW;
+        sync_.setBounds(pillX, h / 2 - 22, pillW, 20);
+        rev_.setBounds(pillX, h / 2 + 2, pillW, 20);
+
+        // The time/FB readout fills the space between the dot and the pill
+        // column, capped at the original design width so unshrunk cards
+        // keep their look.
+        const int readoutLeft = 14 + 26 + 12;
+        readoutW_ = juce::jlimit(24, 64, pillX - 12 - readoutLeft);
     }
 
     void paint(juce::Graphics& g) override {
@@ -135,17 +153,18 @@ public:
 
         // Readout: big time, small FB%.
         const float tx = 14.0f + 26.0f + 12.0f;
+        const float readoutW = float(readoutW_);
         g.setFont(fonts::monoSemiBold(14.0f));
         g.setColour(theme::text());
         g.drawText(strip_.timeText(index_),
-                   juce::Rectangle<float>(tx, b.getCentreY() - 13.0f, 64.0f, 14.0f),
+                   juce::Rectangle<float>(tx, b.getCentreY() - 13.0f, readoutW, 14.0f),
                    juce::Justification::centredLeft, false);
         const int fbPct = juce::roundToInt(
             apvts_.getRawParameterValue(orbit::params::tapFeedbackId(index_))->load() * 100.0f);
         g.setFont(fonts::tracked(fonts::mono(8.5f), 0.08f));
         g.setColour(theme::bone50.withAlpha(0.45f));
         g.drawText("FB " + juce::String(fbPct) + "%",
-                   juce::Rectangle<float>(tx, b.getCentreY() + 2.0f, 64.0f, 9.0f),
+                   juce::Rectangle<float>(tx, b.getCentreY() + 2.0f, readoutW, 9.0f),
                    juce::Justification::centredLeft, false);
 
         // PITCH caption under the knob.
@@ -175,6 +194,7 @@ private:
     TapDot dot_;
     OrbitPill sync_, rev_;
     OrbitKnob pitch_;
+    int readoutW_ = 64;
     juce::Colour accent_ { theme::ember };
     std::unique_ptr<juce::AudioProcessorValueTreeState::ButtonAttachment> dotAtt_, revAtt_;
     std::unique_ptr<juce::AudioProcessorValueTreeState::SliderAttachment> pitchAtt_;

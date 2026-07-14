@@ -1,4 +1,4 @@
-// OrbPad — the 990x572 orb field. The interaction physics (hit-testing,
+// OrbPad — the orb field. The interaction physics (hit-testing,
 // flick-to-throw glide with wall bounces, drag heat) live in pure orbpad::
 // helpers tested directly; the component itself gets ink smoke tests and
 // callback wiring checks, mirroring the rest of the GUI suite.

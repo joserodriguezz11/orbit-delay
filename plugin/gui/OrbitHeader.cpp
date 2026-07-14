@@ -227,7 +227,7 @@ void OrbitHeader::paint(juce::Graphics& g) {
     g.fillRect(float(theme::kWindowW - 60), (H - 22.0f) / 2.0f, 1.0f, 22.0f);
     g.setFont(fonts::tracked(fonts::mono(6.5f), 0.2f));
     g.setColour(theme::bone50.withAlpha(0.4f));
-    g.drawText("IN", juce::Rectangle<float>(float(theme::kWindowW - 50), 38.0f, 13.0f, 7.0f),
+    g.drawText("IN", juce::Rectangle<float>(float(theme::kWindowW - 50), 38.0f, 11.0f, 7.0f),
                juce::Justification::centred, false);
     g.drawText("OUT", juce::Rectangle<float>(float(theme::kWindowW - 38), 38.0f, 15.0f, 7.0f),
                juce::Justification::centred, false);

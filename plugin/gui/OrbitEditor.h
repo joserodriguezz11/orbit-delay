@@ -10,7 +10,7 @@
 #include "gui/OrbitTapStrip.h"
 #include "gui/OrbitTheme.h"
 
-// Top-level editor: fixed-aspect window (100%-200% of the 1180x720 Full-v2
+// Top-level editor: fixed-aspect window (100%-200% of the kWindowW x kWindowH
 // base) hosting the orb pad, control rail and tap strip, laid out in design
 // pixels and scaled with a single transform. The editor is the binder: it
 // owns the per-tap ParameterAttachments, distributes selection, translates
