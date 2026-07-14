@@ -1,6 +1,6 @@
 // Verifies the embedded design fonts load as real typefaces (not system
-// fallbacks): the Full v2 mockup renders values/labels in IBM Plex Mono,
-// preset names in Archivo, and the pad watermark in Syne. Loading from
+// fallbacks): the Full v2 mockup renders values/labels in Space Mono,
+// preset names in Space Grotesk, and the pad watermark in Syne. Loading from
 // OrbitFontBinary means the plugin looks right on machines without the
 // fonts installed.
 #include <catch2/catch_test_macros.hpp>
@@ -11,10 +11,10 @@ TEST_CASE("embedded fonts resolve to the design families") {
     juce::ScopedJuceInitialiser_GUI juceInit;
     using namespace orbit::gui;
 
-    CHECK(fonts::mono(12.0f).getTypefaceName().contains("IBM Plex Mono"));
-    CHECK(fonts::monoSemiBold(12.0f).getTypefaceName().contains("IBM Plex Mono"));
-    CHECK(fonts::sans(12.0f).getTypefaceName().contains("Archivo"));
-    CHECK(fonts::sansSemiBold(12.0f).getTypefaceName().contains("Archivo"));
+    CHECK(fonts::mono(12.0f).getTypefaceName().contains("Space Mono"));
+    CHECK(fonts::monoSemiBold(12.0f).getTypefaceName().contains("Space Mono"));
+    CHECK(fonts::sans(12.0f).getTypefaceName().contains("Space Grotesk"));
+    CHECK(fonts::sansSemiBold(12.0f).getTypefaceName().contains("Space Grotesk"));
     CHECK(fonts::watermark(190.0f).getTypefaceName().contains("Syne"));
 }
 

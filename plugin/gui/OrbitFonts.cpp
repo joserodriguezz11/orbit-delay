@@ -29,32 +29,32 @@ juce::Font fromBinary(const char* data, int size, float height) {
 JUCE_IMPLEMENT_SINGLETON(TypefaceCache)
 
 juce::Font mono(float height) {
-    return fromBinary(OrbitFontBinary::IBMPlexMonoRegular_ttf,
-                      OrbitFontBinary::IBMPlexMonoRegular_ttfSize, height);
+    return fromBinary(OrbitFontBinary::SpaceMonoRegular_ttf,
+                      OrbitFontBinary::SpaceMonoRegular_ttfSize, height);
 }
 juce::Font monoMedium(float height) {
-    return fromBinary(OrbitFontBinary::IBMPlexMonoMedium_ttf,
-                      OrbitFontBinary::IBMPlexMonoMedium_ttfSize, height);
+    return fromBinary(OrbitFontBinary::SpaceMonoRegular_ttf,
+                      OrbitFontBinary::SpaceMonoRegular_ttfSize, height);
 }
 juce::Font monoSemiBold(float height) {
-    return fromBinary(OrbitFontBinary::IBMPlexMonoSemiBold_ttf,
-                      OrbitFontBinary::IBMPlexMonoSemiBold_ttfSize, height);
+    return fromBinary(OrbitFontBinary::SpaceMonoBold_ttf,
+                      OrbitFontBinary::SpaceMonoBold_ttfSize, height);
 }
 juce::Font monoBold(float height) {
-    return fromBinary(OrbitFontBinary::IBMPlexMonoBold_ttf,
-                      OrbitFontBinary::IBMPlexMonoBold_ttfSize, height);
+    return fromBinary(OrbitFontBinary::SpaceMonoBold_ttf,
+                      OrbitFontBinary::SpaceMonoBold_ttfSize, height);
 }
 juce::Font sans(float height) {
-    return fromBinary(OrbitFontBinary::ArchivoMedium_ttf,
-                      OrbitFontBinary::ArchivoMedium_ttfSize, height);
+    return fromBinary(OrbitFontBinary::SpaceGroteskMedium_ttf,
+                      OrbitFontBinary::SpaceGroteskMedium_ttfSize, height);
 }
 juce::Font sansSemiBold(float height) {
-    return fromBinary(OrbitFontBinary::ArchivoSemiBold_ttf,
-                      OrbitFontBinary::ArchivoSemiBold_ttfSize, height);
+    return fromBinary(OrbitFontBinary::SpaceGroteskBold_ttf,
+                      OrbitFontBinary::SpaceGroteskBold_ttfSize, height);
 }
 juce::Font sansExtraBold(float height) {
-    return fromBinary(OrbitFontBinary::ArchivoExtraBold_ttf,
-                      OrbitFontBinary::ArchivoExtraBold_ttfSize, height);
+    return fromBinary(OrbitFontBinary::SpaceGroteskBold_ttf,
+                      OrbitFontBinary::SpaceGroteskBold_ttfSize, height);
 }
 juce::Font watermark(float height) {
     return fromBinary(OrbitFontBinary::SyneExtraBold_ttf,

@@ -22,9 +22,9 @@ TEST_CASE("layout metrics partition the 900x550 window exactly") {
     CHECK(theme::kTapStripH == 96);
 }
 
-TEST_CASE("v2 type families are Archivo / IBM Plex Mono / Syne watermark") {
-    CHECK(juce::String(theme::fontSans) == "Archivo");
-    CHECK(juce::String(theme::fontMono) == "IBM Plex Mono");
+TEST_CASE("type families are Space Grotesk / Space Mono / Syne watermark") {
+    CHECK(juce::String(theme::fontSans) == "Space Grotesk");
+    CHECK(juce::String(theme::fontMono) == "Space Mono");
     CHECK(juce::String(theme::fontWatermark) == "Syne");
 }
 

@@ -143,9 +143,9 @@ inline float msToX(float ms) {
 }
 
 // ------------------------------------------------------------- typography
-inline constexpr auto fontSans      = "Archivo";        // labels, preset names
-inline constexpr auto fontMono      = "IBM Plex Mono";  // values, section heads
-inline constexpr auto fontWatermark = "Syne";           // pad ORBIT watermark
+inline constexpr auto fontSans      = "Space Grotesk";   // labels, preset names
+inline constexpr auto fontMono      = "Space Mono";      // values, section heads
+inline constexpr auto fontWatermark = "Syne";            // pad ORBIT watermark
 
 inline constexpr int fwRegular  = 400;
 inline constexpr int fwMedium   = 500;

@@ -20,9 +20,9 @@ if(NOT ORBIT_PRESET_COUNT EQUAL 40)
 endif()
 juce_add_binary_data(OrbitPresetData SOURCES ${ORBIT_PRESET_SOURCES})
 
-# Design fonts embedded as binary data (OFL-licensed: Archivo, IBM Plex Mono,
-# Syne). Own header/namespace so the symbols never collide with the preset
-# BinaryData target.
+# Design fonts embedded as binary data (OFL-licensed: Space Grotesk, Space
+# Mono, Syne). Own header/namespace so the symbols never collide with the
+# preset BinaryData target.
 file(GLOB ORBIT_FONT_SOURCES CONFIGURE_DEPENDS
     "${CMAKE_SOURCE_DIR}/assets/fonts/*.ttf")
 list(SORT ORBIT_FONT_SOURCES)

@@ -1,21 +1,9 @@
 #include "OrbitLookAndFeel.h"
 #include "OrbitTheme.h"
+#include "OrbitFonts.h"
 
 namespace theme = orbit::gui::theme;
-
-namespace {
-
-juce::Font monoFont(float height) {
-    return juce::Font { juce::FontOptions { theme::fontMono, height,
-                                            juce::Font::plain } };
-}
-
-juce::Font sansFont(float height) {
-    return juce::Font { juce::FontOptions { theme::fontSans, height,
-                                            juce::Font::plain } };
-}
-
-} // namespace
+namespace fonts = orbit::gui::fonts;
 
 OrbitLookAndFeel::OrbitLookAndFeel() : accent_(theme::ember) {
     setColour(juce::Slider::textBoxTextColourId, theme::bone100);
@@ -60,7 +48,7 @@ void OrbitLookAndFeel::drawRotarySlider(juce::Graphics& g, int x, int y,
     // Centred mono value readout (v2 knob text runs 8.5px..12.5px with size).
     const float fontH = juce::jlimit(8.5f, 12.5f, radius * 0.34f);
     g.setColour(theme::bone100);
-    g.setFont(monoFont(fontH));
+    g.setFont(fonts::mono(fontH));
     g.drawText(slider.getTextFromValue(slider.getValue()),
                bounds.reduced(lineW), juce::Justification::centred, false);
 }
@@ -98,7 +86,7 @@ void OrbitLookAndFeel::drawToggleButton(juce::Graphics& g,
     const auto text = button.getButtonText();
     if (text.isNotEmpty()) {
         g.setColour(on ? theme::bone100 : theme::bone300);
-        g.setFont(sansFont(13.0f));
+        g.setFont(fonts::sans(13.0f));
         auto textArea = bounds.withTrimmedLeft(trackW + 8.0f);
         g.drawText(text, textArea, juce::Justification::centredLeft, false);
     }
