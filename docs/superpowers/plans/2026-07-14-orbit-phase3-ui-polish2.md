@@ -228,10 +228,10 @@ Co-Authored-By: Claude Fable 5 <noreply@anthropic.com>"
 
 ---
 
-### Task 3: A/B + arrows glyph-only
+### Task 3: A/B + arrows glyph-only, header/settings text removals
 
 **Files:**
-- Modify: `plugin/gui/OrbitHeader.h` (prev_/next_ ctor args), `plugin/gui/OrbitHeader.cpp` (slotRing, paint arrows)
+- Modify: `plugin/gui/OrbitHeader.h` (prev_/next_ ctor args), `plugin/gui/OrbitHeader.cpp` (slotRing, paint arrows, tagline removal), `plugin/gui/OrbitSettingsPanel.cpp` (ABOUT text)
 - Test: `tests/gui/OrbitHeaderTests.cpp`
 
 **Interfaces:**
@@ -299,13 +299,18 @@ Add the accessors next to `slotAButton()`/`slotBButton()` in `OrbitHeader.h`:
 
 (c) In the constructor, `styleRound`'s text-colour line is now inert for all four buttons — leave the helper (it still kills the button background colour) but drop its `textColourOffId` line if trivially safe, else leave as-is.
 
+(d) Text removals (same commit):
+- In `OrbitHeader.cpp` `paint()`, DELETE the `4-TAP ECHO` tagline draw (the `fonts::tracked(fonts::mono(6.5f), 0.32f)` + `drawText("4-TAP ECHO", ...)` lines under the wordmark block). The wordmark, logo rings, and the PRESETS caption stay.
+- In `plugin/gui/OrbitSettingsPanel.cpp` `paint()`: change `drawText("ORBIT - 4-tap echo", ...)` to `drawText("ORBIT", ...)`, and the version line from `juce::String("Version ") + JucePlugin_VersionString + "  -  Synthios Records"` to `juce::String("Version ") + JucePlugin_VersionString`.
+
 - [ ] **Step 4: Build + run** — expected PASS, including the existing "header children do not overlap" and A/B behavior tests.
 
 - [ ] **Step 5: Commit**
 
 ```bash
-git add plugin/gui/OrbitHeader.h plugin/gui/OrbitHeader.cpp tests/gui/OrbitHeaderTests.cpp
-git commit -m "feat(gui): A/B and preset arrows go glyph-only — no rings, no disc
+git add plugin/gui/OrbitHeader.h plugin/gui/OrbitHeader.cpp \
+        plugin/gui/OrbitSettingsPanel.cpp tests/gui/OrbitHeaderTests.cpp
+git commit -m "feat(gui): glyph-only A/B + arrows; drop 4-TAP ECHO tagline and settings byline
 
 Co-Authored-By: Claude Fable 5 <noreply@anthropic.com>"
 ```

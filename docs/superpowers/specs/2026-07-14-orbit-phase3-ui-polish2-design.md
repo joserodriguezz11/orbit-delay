@@ -88,6 +88,15 @@ Applies to BOTH knob painters so they don't diverge:
   stringWidthAtBase, float availableWidth)` returning the fitted height —
   clamped so it never exceeds baseHeight; unit-test fit and no-fit cases.
 
+### 5. Text removals (added mid-design by Jose)
+
+- Header: DELETE the `4-TAP ECHO` tagline under the ORBIT wordmark
+  (`OrbitHeader.cpp` paint, the tracked mono 6.5px line). The wordmark and
+  logo rings stay.
+- Settings panel ABOUT section (`OrbitSettingsPanel.cpp`):
+  - Title `ORBIT - 4-tap echo` → `ORBIT`.
+  - Version line `Version X  -  Synthios Records` → `Version X`.
+
 ## Non-Goals
 
 - No mockup HTML edits; no parameter/DSP/preset/state changes; no layout
