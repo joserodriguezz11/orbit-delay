@@ -38,9 +38,21 @@ Deliberate deviations from the mockup (all UI-side, engine-faithful):
 - **Added** (not in mockup): header settings gear opening an About / How to
   Use overlay (preset-browser idiom), and a PRESETS caption under the preset
   capsule.
+- **Type families are Space Grotesk / Space Mono** (mockup: Archivo /
+  IBM Plex Mono; Syne watermark unchanged). Embedded weights: Grotesk
+  Medium/Bold, Mono Regular/Bold — SemiBold/ExtraBold roles map to Bold.
+- **Knob indicator is a dot on the track** at the value angle (mockup:
+  value arc + pointer line).
+- **A/B and preset arrows are glyph-only** — no rings or active disc; the
+  active slot reads in ember.
+- **Pad watermark auto-fits** the pad width (mockup: fixed 190px); the
+  header drops the 4-TAP ECHO tagline and the settings ABOUT drops the
+  "4-tap echo" / "Synthios Records" byline.
 
 ## Fonts
 
-`assets/fonts/` embeds Archivo (500/600/800), IBM Plex Mono (400/500/600/700)
-and Syne (800) — all OFL-licensed — via the `OrbitFontData` binary target
+`assets/fonts/` embeds Space Grotesk (500/700), Space Mono (400/700) and
+Syne (800) — all OFL-licensed — via the `OrbitFontData` binary target
 (`OrbitFontBinary` namespace; the preset data owns plain `BinaryData`).
+The `fonts::` SemiBold/ExtraBold accessors intentionally resolve to the
+Bold faces (no static SemiBold exists for either family).
