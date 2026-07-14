@@ -86,6 +86,20 @@ TEST_CASE("OrbitKnob paints ink at every design size") {
     }
 }
 
+TEST_CASE("knob paints at value extremes without the removed arc/pointer") {
+    juce::ScopedJuceInitialiser_GUI juceInit;
+    OrbitKnob k;
+    k.setRange(0.0, 1.0, 0.01);
+    k.setBounds(0, 0, 56, 56);
+    juce::Image img { juce::Image::ARGB, 56, 56, true };
+    for (const double v : { 0.0, 0.5, 1.0 }) {
+        k.setValue(v, juce::dontSendNotification);
+        juce::Graphics g { img };
+        k.paint(g);   // must not assert/crash at either sweep extreme
+    }
+    SUCCEED();
+}
+
 // ------------------------------------------------------------- OrbitPill
 
 TEST_CASE("OrbitPill is a click-toggling button and paints both states") {

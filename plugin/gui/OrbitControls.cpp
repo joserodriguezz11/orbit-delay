@@ -149,22 +149,15 @@ void OrbitKnob::paint(juce::Graphics& g) {
     g.strokePath(track, { arcW, juce::PathStrokeType::curved,
                           juce::PathStrokeType::rounded });
 
-    // Value arc: accent when linked to a tap position, bone when manual.
+    // Value dot: rides the track arc at the value angle (halo underneath).
     {
-        const float endA = juce::jmax(-134.2f, va);
-        juce::Path value;
-        value.addCentredArc(cx, cy, r, r, 0.0f, rad(-135.0f), rad(endA), true);
-        g.setColour(linked_ ? accent_ : theme::manual());
-        g.strokePath(value, { arcW, juce::PathStrokeType::curved,
-                              juce::PathStrokeType::rounded });
-    }
-
-    // Pointer.
-    {
-        const auto pi = juce::Point<float>(cx, cy).getPointOnCircumference(r * 0.32f, rad(va));
-        const auto pe = juce::Point<float>(cx, cy).getPointOnCircumference(r * 0.88f, rad(va));
-        g.setColour(theme::bone50.withAlpha(0.9f));
-        g.drawLine({ pi, pe }, 1.8f);
+        const auto dc = juce::Point<float>(cx, cy).getPointOnCircumference(r, rad(va));
+        const float dotR = arcW * 0.9f;
+        const auto col = linked_ ? accent_ : theme::manual();
+        g.setColour(col.withAlpha(0.22f));
+        g.fillEllipse(dc.x - dotR * 2.2f, dc.y - dotR * 2.2f, dotR * 4.4f, dotR * 4.4f);
+        g.setColour(col);
+        g.fillEllipse(dc.x - dotR, dc.y - dotR, dotR * 2.0f, dotR * 2.0f);
     }
 
     // Centred value text (size-dependent, shrinks past 6 characters).
