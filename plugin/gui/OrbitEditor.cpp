@@ -118,8 +118,14 @@ void OrbitEditor::setSelectedTap(int i) {
 
 void OrbitEditor::refreshTap(int i) {
     auto& apvts = proc_.apvts;
+    // Read through the parameter object, not getRawParameterValue: parameter
+    // listeners fire in reverse registration order, so during a change
+    // notification the APVTS raw atomic (updated by its own, earlier-added
+    // listener) still holds the previous value and the view would lag one
+    // event behind host automation.
     const auto rawf = [&apvts] (const juce::String& id) {
-        return apvts.getRawParameterValue(id)->load();
+        auto* p = apvts.getParameter(id);
+        return p->convertFrom0to1(p->getValue());
     };
 
     const int div = int(rawf(orbit::params::tapSyncId(i)));
@@ -131,7 +137,7 @@ void OrbitEditor::refreshTap(int i) {
     OrbPad::TapView view;
     view.on = rawf(orbit::params::tapEnabledId(i)) > 0.5f;
     view.x = theme::msToX(ms);
-    view.y = juce::jlimit(0.0f, 1.0f, rawf(orbit::params::tapFeedbackId(i)) / 0.95f);
+    view.y = juce::jlimit(0.0f, 1.0f, rawf(orbit::params::tapFeedbackId(i)) / 0.98f);
     view.synced = synced;
     view.reversed = rawf(orbit::params::tapReverseId(i)) > 0.5f;
     pad_.setTap(i, view);
@@ -179,7 +185,7 @@ void OrbitEditor::writeOrb(int i, float x, float y) {
     auto& apvts = proc_.apvts;
 
     auto* fbParam = apvts.getParameter(orbit::params::tapFeedbackId(i));
-    fbParam->setValueNotifyingHost(fbParam->convertTo0to1(y * 0.95f));
+    fbParam->setValueNotifyingHost(fbParam->convertTo0to1(y * 0.98f));
 
     const int div = int(apvts.getRawParameterValue(orbit::params::tapSyncId(i))->load());
     if (div != int(SyncDivision::Free)) {

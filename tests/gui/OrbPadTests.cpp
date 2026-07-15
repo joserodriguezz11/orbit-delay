@@ -206,11 +206,11 @@ TEST_CASE("riding knobs mirror the selected tap and write back through onOrbMove
     pad.setTap(0, { true, 0.5f, 0.6f, false, false });
 
     // Mirror: TIME shows the x position (190ms on the log curve), FEEDBACK
-    // shows round(y*95).
+    // shows round(y*98) — the knob reads in true feedback % (param max 0.98).
     CHECK(pad.timeKnob().getValue() == Catch::Approx(0.5).margin(1e-3));
     CHECK(pad.timeKnob().getTextFromValue(0.5) == "190ms");
-    CHECK(pad.fbKnob().getValue() == Catch::Approx(57.0));
-    CHECK(pad.fbKnob().getTextFromValue(57.0) == "57%");
+    CHECK(pad.fbKnob().getValue() == Catch::Approx(59.0));
+    CHECK(pad.fbKnob().getTextFromValue(59.0) == "59%");
 
     // Write-back: turning a knob is an orb move on the selected tap.
     int movedTap = -1; float mx = -1.0f, my = -1.0f;
@@ -222,8 +222,26 @@ TEST_CASE("riding knobs mirror the selected tap and write back through onOrbMove
     CHECK(mx == Catch::Approx(0.75f).margin(0.003));
     CHECK(my == Catch::Approx(0.6f).margin(1e-3));
 
-    pad.fbKnob().setValue(19.0, juce::sendNotificationSync);
-    CHECK(my == Catch::Approx(0.2f).margin(1e-3));
+    pad.fbKnob().setValue(49.0, juce::sendNotificationSync);
+    CHECK(my == Catch::Approx(0.5f).margin(1e-3));
+}
+
+TEST_CASE("riding-knob double-click defaults match the tap parameter defaults") {
+    juce::ScopedJuceInitialiser_GUI juceInit;
+    OrbPad pad;
+    pad.setSize(orbit::gui::theme::kPadW, orbit::gui::theme::kPadH);
+    pad.setTap(0, { true, 0.2f, 0.2f, false, false });
+
+    float mx = -1.0f, my = -1.0f;
+    pad.onOrbMove = [&] (int, float x, float y) { mx = x; my = y; };
+
+    // FEEDBACK resets to the parameter default 0.35 (35%)...
+    pad.fbKnob().resetToDefault();
+    CHECK(pad.fbKnob().getValue() == Catch::Approx(35.0));
+    CHECK(my == Catch::Approx(0.35f / 0.98f).margin(1e-3));
+    // ...and free-mode TIME to the parameter default 350ms.
+    pad.timeKnob().resetToDefault();
+    CHECK(mx == Catch::Approx(orbit::gui::theme::msToX(350.0f)).margin(0.003f));
 }
 
 TEST_CASE("synced taps flip the TIME knob into stepped division mode") {

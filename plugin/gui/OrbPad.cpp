@@ -84,8 +84,10 @@ OrbPad::OrbPad() {
     addAndMakeVisible(fbKnob_);
     timeKnob_.setLinked(true);
     fbKnob_.setLinked(true);
-    fbKnob_.setRange(0.0, 95.0, 1.0);
-    fbKnob_.setKnobDefault(40.0);
+    // FEEDBACK reads in true percent: the y axis spans the parameter's full
+    // 0-0.98 range, and double-click resets to the param default (0.35).
+    fbKnob_.setRange(0.0, 98.0, 1.0);
+    fbKnob_.setKnobDefault(35.0);
     fbKnob_.textFromValueFunction = [] (double v) {
         return juce::String(juce::roundToInt(v)) + "%";
     };
@@ -94,7 +96,7 @@ OrbPad::OrbPad() {
             return;
         const auto& tp = taps_[size_t(sel_)];
         if (onOrbMove != nullptr)
-            onOrbMove(sel_, tp.x, float(fbKnob_.getValue() / 95.0));
+            onOrbMove(sel_, tp.x, float(fbKnob_.getValue() / 98.0));
     };
     timeKnob_.onValueChange = [this] {
         if (knobGuard_)
@@ -160,7 +162,8 @@ void OrbPad::configureTimeKnob() {
         };
     } else {
         timeKnob_.setRange(0.0, 1.0, 0.004);
-        timeKnob_.setKnobDefault(0.5);
+        // Double-click resets to the tap-time parameter default (350ms).
+        timeKnob_.setKnobDefault(double(theme::msToX(350.0f)));
         timeKnob_.textFromValueFunction = [] (double v) {
             return juce::String(juce::roundToInt(theme::msOfX(float(v)))) + "ms";
         };
@@ -171,7 +174,7 @@ void OrbPad::configureTimeKnob() {
 void OrbPad::syncKnobsFromTap() {
     const auto& tp = taps_[size_t(sel_)];
     knobGuard_ = true;
-    fbKnob_.setValue(std::round(tp.y * 95.0f), juce::sendNotificationSync);
+    fbKnob_.setValue(std::round(tp.y * 98.0f), juce::sendNotificationSync);
     timeKnob_.setValue(timeKnobStepped_ ? double(nearestGridIndex(tp.x))
                                         : double(tp.x),
                        juce::sendNotificationSync);
@@ -642,7 +645,7 @@ void OrbPad::paint(juce::Graphics& g) {
             }
         }
         for (const float fb : { 25.0f, 50.0f, 75.0f }) {
-            const float py = std::round((1.0f - fb / 95.0f) * H) + 0.5f;
+            const float py = std::round((1.0f - fb / 98.0f) * H) + 0.5f;
             g.setColour(theme::bone50.withAlpha(0.20f));
             g.fillRect(0.0f, py - 0.5f, 6.0f, 1.0f);
             const juce::Rectangle<float> lr { 9.0f, py - 5.0f, 24.0f, 10.0f };

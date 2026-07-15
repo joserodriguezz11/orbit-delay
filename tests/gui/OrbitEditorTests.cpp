@@ -103,11 +103,24 @@ TEST_CASE("dragging an orb writes the tap's time and feedback parameters") {
     ed->orbPad().dragOrbTo(0.5f, 0.5f);
     ed->orbPad().endOrbDrag();
 
-    // x=0.5 on the log curve is 40*sqrt(22.5) ~= 189.7ms; y=0.5 -> fb 0.475.
+    // x=0.5 on the log curve is 40*sqrt(22.5) ~= 189.7ms; y=0.5 -> fb 0.49
+    // (the pad's y axis spans the parameter's full 0-0.98 range).
     CHECK(proc.apvts.getRawParameterValue("tap1_time")->load()
           == Catch::Approx(189.7f).margin(1.0f));
     CHECK(proc.apvts.getRawParameterValue("tap1_feedback")->load()
-          == Catch::Approx(0.475f).margin(0.005f));
+          == Catch::Approx(0.49f).margin(0.005f));
+}
+
+TEST_CASE("pad, riding knob, and strip agree on feedback at the param maximum") {
+    juce::ScopedJuceInitialiser_GUI juceInit;
+    OrbitAudioProcessor proc;
+    std::unique_ptr<juce::AudioProcessorEditor> base { proc.createEditor() };
+    auto* ed = dynamic_cast<OrbitEditor*>(base.get());
+    REQUIRE(ed != nullptr);
+
+    auto* fb = proc.apvts.getParameter("tap1_feedback");
+    fb->setValueNotifyingHost(fb->convertTo0to1(0.98f));
+    CHECK(ed->orbPad().fbKnob().getValue() == Catch::Approx(98.0));
 }
 
 TEST_CASE("dragging a synced orb snaps onto the nearest real division") {
