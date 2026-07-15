@@ -286,9 +286,10 @@ void OrbPad::endOrbDrag() {
     dragI_ = -1;
     if (orbpad::shouldGlide(velX_, velY_)) {
         glide_ = { taps_[size_t(i)].x, taps_[size_t(i)].y, velX_, velY_, true };
+        // The glide keeps steering the thrown tap from animationTick — by its
+        // own index, so a selection change mid-flight doesn't redirect it.
+        glideTap_ = i;
         hoverI_ = -1;
-        // The glide keeps steering this tap from animationTick.
-        sel_ = i;
     }
 }
 
@@ -394,10 +395,10 @@ void OrbPad::animationTick() {
     // Glide steers the thrown orb and reports every step like a live drag.
     if (glide_.active) {
         const int walls = orbpad::stepGlide(glide_, dt);
-        taps_[size_t(sel_)].x = glide_.x;
-        taps_[size_t(sel_)].y = glide_.y;
+        taps_[size_t(glideTap_)].x = glide_.x;
+        taps_[size_t(glideTap_)].y = glide_.y;
         if (onOrbMove != nullptr)
-            onOrbMove(sel_, glide_.x, glide_.y);
+            onOrbMove(glideTap_, glide_.x, glide_.y);
         if (walls != orbpad::kWallNone) {
             if (walls & orbpad::kWallLeft)   flashes_.push_back({ 0, nowMs });
             if (walls & orbpad::kWallRight)  flashes_.push_back({ 1, nowMs });
@@ -405,7 +406,7 @@ void OrbPad::animationTick() {
             if (walls & orbpad::kWallBottom) flashes_.push_back({ 3, nowMs });
             while (flashes_.size() > 6)
                 flashes_.erase(flashes_.begin());
-            const auto& tp = taps_[size_t(sel_)];
+            const auto& tp = taps_[size_t(glideTap_)];
             burstSparks(glide_.x, glide_.y, theme::tapLch(tp.x, tp.y, warm_, th()));
         }
     }

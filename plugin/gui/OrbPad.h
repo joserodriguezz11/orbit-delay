@@ -101,6 +101,11 @@ public:
 
     void resized() override;
 
+    // One animation step (trail/heat/glide/sparks). The VBlank attachment
+    // drives it live; public so headless tests can step the glide (mirrors
+    // OrbitMeter::refreshNow).
+    void animationTick();
+
     void paint(juce::Graphics&) override;
     void mouseDown(const juce::MouseEvent&) override;
     void mouseMove(const juce::MouseEvent&) override;
@@ -114,7 +119,6 @@ private:
 
     juce::Point<float> toNorm(juce::Point<float> p) const;  // pixels -> (x, y-up)
     const orbit::gui::theme::CharacterTheme& th() const;
-    void animationTick();
     bool animating() const;
     void burstSparks(float nx, float ny, orbit::gui::theme::Lch col);
     void configureTimeKnob();
@@ -144,6 +148,7 @@ private:
     float heat_ = 0.0f;
 
     orbpad::Glide glide_;
+    int glideTap_ = 0;   // the thrown tap — the glide steers it, not sel_
     std::vector<TrailPoint> trail_;
     std::vector<Spark> sparks_;
     std::vector<Flash> flashes_;

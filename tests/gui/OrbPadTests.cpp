@@ -118,6 +118,30 @@ TEST_CASE("OrbPad reports selection changes and orb moves through callbacks") {
     CHECK(movedY == Approx(0.6f).margin(1e-4));
 }
 
+TEST_CASE("an active glide keeps steering the thrown tap after selection changes") {
+    juce::ScopedJuceInitialiser_GUI juceInit;
+    OrbPad pad;
+    pad.setSize(orbit::gui::theme::kPadW, orbit::gui::theme::kPadH);
+    for (int i = 0; i < 4; ++i)
+        pad.setTap(i, { true, 0.5f, 0.5f, false, false });
+
+    // Throw tap 0: two fast moves build EMA velocity above the flick threshold.
+    pad.beginOrbDrag(0);
+    pad.dragOrbTo(0.5f, 0.5f);
+    pad.dragOrbTo(0.6f, 0.5f);
+    pad.endOrbDrag();
+
+    // The user clicks tap 2's strip card while the orb is still flying.
+    pad.setSelected(2);
+
+    int movedTap = -1;
+    pad.onOrbMove = [&] (int i, float, float) { movedTap = i; };
+    pad.animationTick();
+
+    CHECK(movedTap == 0);        // the glide still steers the thrown tap...
+    CHECK(pad.selected() == 2);  // ...and selection stays where the user put it
+}
+
 // -------------------------------------------------------- riding knobs
 
 TEST_CASE("riding knobs mirror the selected tap and write back through onOrbMove") {
