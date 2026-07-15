@@ -1,5 +1,6 @@
 #include "OrbitTapStrip.h"
 #include "OrbitFonts.h"
+#include "OrbitSync.h"
 #include "Parameters.h"
 
 namespace theme = orbit::gui::theme;
@@ -244,17 +245,7 @@ void OrbitTapStrip::setSyncEnabled(int i, bool on) {
 
     if (on) {
         // Nearest real division to the current free time.
-        const float ms = currentTimeMs(apvts_, i);
-        int best = int(SyncDivision::Quarter);
-        float bestD = 1.0e9f;
-        for (int d = 1; d < int(SyncDivision::NumDivisions); ++d) {
-            const float dms = orbit::dsp::divisionToSeconds(SyncDivision(d), bpm) * 1000.0f;
-            const float diff = std::abs(dms - ms);
-            if (diff < bestD) {
-                bestD = diff;
-                best = d;
-            }
-        }
+        const int best = orbit::gui::nearestSyncDivision(currentTimeMs(apvts_, i), bpm);
         syncParam->setValueNotifyingHost(syncParam->convertTo0to1(float(best)));
     } else {
         // Keep the effective time when dropping back to Free.

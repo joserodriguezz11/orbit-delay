@@ -55,8 +55,7 @@ target_sources(OrbitDelay PRIVATE
     gui/OrbitRail.cpp
     gui/OrbitTapStrip.cpp
     gui/OrbitEditor.cpp
-    gui/OrbitFonts.cpp
-    gui/OrbitLookAndFeel.cpp)
+    gui/OrbitFonts.cpp)
 
 target_compile_definitions(OrbitDelay PUBLIC
     JUCE_WEB_BROWSER=0

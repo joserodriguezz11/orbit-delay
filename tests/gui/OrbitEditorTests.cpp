@@ -5,9 +5,20 @@
 #include <catch2/catch_approx.hpp>
 #include <cmath>
 #include "gui/OrbitEditor.h"
+#include "gui/OrbitSync.h"
 #include "PluginProcessor.h"
 
 using Catch::Approx;
+
+TEST_CASE("nearestSyncDivision picks the closest real division at the tempo") {
+    using orbit::dsp::SyncDivision;
+    // 120bpm: 1/4 = 500ms, 1/8 = 250ms.
+    CHECK(orbit::gui::nearestSyncDivision(500.0f, 120.0) == int(SyncDivision::Quarter));
+    CHECK(orbit::gui::nearestSyncDivision(260.0f, 120.0) == int(SyncDivision::Eighth));
+    // Extremes never land on Free — snapping always yields a real division.
+    CHECK(orbit::gui::nearestSyncDivision(1.0f, 120.0) != int(SyncDivision::Free));
+    CHECK(orbit::gui::nearestSyncDivision(5000.0f, 120.0) != int(SyncDivision::Free));
+}
 
 TEST_CASE("OrbitEditor opens at base size and is resizable within 100-200%") {
     // Same guard as the other gui tests: the real processor + JUCE editor

@@ -1,8 +1,7 @@
 // v2 control set: OrbitKnob (arc knob with spring settle + design drag
 // gestures), OrbitPill (SYNC/REV/FREEZE), OrbitSwitch (P-PONG), OrbitSeg
 // (CLEAN/TAPE/GRIT) and OrbitMeter (peak-hold level bar). Interaction math
-// is tested through pure helpers; painting through ink-on-image smoke tests
-// (mirrors OrbitLookAndFeelTests).
+// is tested through pure helpers; painting through ink-on-image smoke tests.
 #include <catch2/catch_test_macros.hpp>
 #include <catch2/catch_approx.hpp>
 #include "gui/OrbitControls.h"

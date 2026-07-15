@@ -1,27 +1,9 @@
 #include "OrbitEditor.h"
+#include "OrbitSync.h"
 #include "Parameters.h"
 
 namespace theme = orbit::gui::theme;
 using orbit::dsp::SyncDivision;
-
-namespace {
-
-// Nearest non-Free division to a time in ms at the given tempo.
-int nearestDivision(float ms, double bpm) {
-    int best = int(SyncDivision::Quarter);
-    float bestD = 1.0e9f;
-    for (int d = 1; d < int(SyncDivision::NumDivisions); ++d) {
-        const float dms = orbit::dsp::divisionToSeconds(SyncDivision(d), bpm) * 1000.0f;
-        const float diff = std::abs(dms - ms);
-        if (diff < bestD) {
-            bestD = diff;
-            best = d;
-        }
-    }
-    return best;
-}
-
-} // namespace
 
 OrbitEditor::OrbitEditor(OrbitAudioProcessor& proc)
     : juce::AudioProcessorEditor(proc),
@@ -194,7 +176,8 @@ void OrbitEditor::writeOrb(int i, float x, float y) {
     const int div = int(apvts.getRawParameterValue(orbit::params::tapSyncId(i))->load());
     if (div != int(SyncDivision::Free)) {
         // Synced taps ride the division grid; free time stays untouched.
-        const int nearest = nearestDivision(theme::msOfX(x), proc_.currentBpm());
+        const int nearest = orbit::gui::nearestSyncDivision(theme::msOfX(x),
+                                                            proc_.currentBpm());
         if (nearest != div) {
             auto* syncParam = apvts.getParameter(orbit::params::tapSyncId(i));
             syncParam->setValueNotifyingHost(syncParam->convertTo0to1(float(nearest)));

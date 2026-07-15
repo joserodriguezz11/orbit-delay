@@ -19,7 +19,6 @@ add_executable(orbit_gui_tests
     OrbitSettingsTests.cpp
     ProcessorAccessorTests.cpp
     OrbitEditorTests.cpp
-    OrbitLookAndFeelTests.cpp
     ${CMAKE_SOURCE_DIR}/plugin/PluginProcessor.cpp
     ${CMAKE_SOURCE_DIR}/plugin/gui/OrbPad.cpp
     ${CMAKE_SOURCE_DIR}/plugin/gui/OrbitControls.cpp
@@ -30,7 +29,6 @@ add_executable(orbit_gui_tests
     ${CMAKE_SOURCE_DIR}/plugin/gui/OrbitTapStrip.cpp
     ${CMAKE_SOURCE_DIR}/plugin/gui/OrbitEditor.cpp
     ${CMAKE_SOURCE_DIR}/plugin/gui/OrbitFonts.cpp
-    ${CMAKE_SOURCE_DIR}/plugin/gui/OrbitLookAndFeel.cpp
     ${CMAKE_SOURCE_DIR}/plugin/Parameters.cpp
     ${CMAKE_SOURCE_DIR}/plugin/PresetManager.cpp)
 
