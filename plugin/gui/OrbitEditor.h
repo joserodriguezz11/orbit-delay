@@ -63,6 +63,10 @@ private:
     // The destructor closes any left open so hosts never see a dangling begin.
     std::array<bool, 4> tapGestureOpen_ {};
 
+    // Tempo the sync grid was last built at — the 500ms timer only rebuilds
+    // (and re-repaints the pad) when the host tempo actually moved.
+    double lastGridBpm_ = -1.0;
+
     juce::ComponentBoundsConstrainer constrainer_;
 
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(OrbitEditor)

@@ -107,13 +107,16 @@ OrbitEditor::~OrbitEditor() {
 }
 
 void OrbitEditor::timerCallback() {
+    if (proc_.currentBpm() == lastGridBpm_)
+        return;   // idle poll — leave the pad alone
     refreshSyncGrid();
+    for (int i = 0; i < 4; ++i)
+        refreshTap(i);   // synced taps' x positions ride the tempo
 }
 
 void OrbitEditor::setSelectedTap(int i) {
     pad_.setSelected(i);
     strip_.setSelected(i);
-    refreshSyncGrid();
 }
 
 void OrbitEditor::refreshTap(int i) {
@@ -154,6 +157,7 @@ void OrbitEditor::refreshSyncGrid() {
     // walk short -> long.
     std::vector<OrbPad::SyncGridEntry> grid;
     const double bpm = proc_.currentBpm();
+    lastGridBpm_ = bpm;
     for (int d = 1; d < int(SyncDivision::NumDivisions); ++d) {
         const float ms = orbit::dsp::divisionToSeconds(SyncDivision(d), bpm) * 1000.0f;
         if (ms >= 40.0f && ms <= 900.0f)
