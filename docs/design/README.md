@@ -48,6 +48,14 @@ Deliberate deviations from the mockup (all UI-side, engine-faithful):
 - **Pad watermark auto-fits** the pad width (mockup: fixed 190px); the
   header drops the 4-TAP ECHO tagline and the settings ABOUT drops the
   "4-tap echo" / "Synthios Records" byline.
+- **Preset browser panel is 860x420 with a four-column grid** (mockup:
+  566px, two columns, which only fit 20 of the 40 factory presets). Rows
+  are drawn and clickable only while they fit the panel; overflow (user
+  presets past capacity) is labelled "+N MORE" instead of hidden.
+- **Feedback axis reads in true percent (0–98)** — pad y, FEEDBACK knob
+  and strip readout all span the parameter's full 0–0.98 range (mockup
+  used a 95 full-scale). Riding-knob double-click resets to the parameter
+  defaults: 35% feedback, 350ms time.
 
 ## Fonts
 
