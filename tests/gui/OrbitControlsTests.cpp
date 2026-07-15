@@ -67,6 +67,12 @@ TEST_CASE("OrbitKnob wheel steps range/80 coarse and one step fine") {
           == Approx(49.0).margin(0.3));  // down-scroll decreases
     CHECK(OrbitKnob::wheeledValue(50.0, -1.0, 0.0, 100.0, 1.0, true)
           == Approx(51.0));
+    // Continuous parameters (interval 0, e.g. every rail knob): fine wheel
+    // still moves — "one step" floors at range/400 instead of zero.
+    CHECK(OrbitKnob::wheeledValue(0.5, 1.0, 0.0, 1.0, 0.0, true)
+          == Approx(0.5 - 1.0 / 400.0));
+    CHECK(OrbitKnob::wheeledValue(0.5, -1.0, 0.0, 1.0, 0.0, true)
+          == Approx(0.5 + 1.0 / 400.0));
 }
 
 TEST_CASE("OrbitKnob double-click returns to the default value") {

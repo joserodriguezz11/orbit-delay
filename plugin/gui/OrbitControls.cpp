@@ -41,7 +41,10 @@ double OrbitKnob::draggedValue(double startValue, double dyUp, double min,
 double OrbitKnob::wheeledValue(double current, double domDeltaY, double min,
                                double max, double step, bool fine) {
     const double range = max - min;
-    const double inc = fine ? step : juce::jmax(step, range / kWheelDiv);
+    // Fine is one step; continuous parameters have step 0, so floor the
+    // increment at range/400 or shift+wheel would be a no-op on them.
+    const double inc = fine ? juce::jmax(step, range / 400.0)
+                            : juce::jmax(step, range / kWheelDiv);
     const double sign = domDeltaY > 0.0 ? 1.0 : (domDeltaY < 0.0 ? -1.0 : 0.0);
     double nv = current - sign * inc;
     return juce::jlimit(min, max, snapTo(nv, step));
