@@ -6,8 +6,9 @@ namespace theme = orbit::gui::theme;
 namespace fonts = orbit::gui::fonts;
 
 namespace {
-constexpr float kPanelX = 20.0f, kPanelY = 56.0f, kPanelW = 566.0f, kPanelH = 420.0f;
+constexpr float kPanelX = 20.0f, kPanelY = 56.0f, kPanelW = 860.0f, kPanelH = 420.0f;
 constexpr float kHeadH = 38.0f, kChipsH = 42.0f, kRowH = 30.0f, kRowGap = 2.0f;
+constexpr int kGridCols = 4;   // 4 x 10 rows — the 40-preset factory set fits
 } // namespace
 
 OrbitPresetBrowser::OrbitPresetBrowser(orbit::PresetManager& presets)
@@ -78,10 +79,14 @@ juce::Rectangle<float> OrbitPresetBrowser::chipBounds(int chip) const {
 juce::Rectangle<float> OrbitPresetBrowser::rowBounds(int visibleRow) const {
     const auto panel = panelBounds();
     const float gridY = panel.getY() + kHeadH + kChipsH;
-    const float colW = (panel.getWidth() - 20.0f) / 2.0f;
-    const int col = visibleRow % 2, r = visibleRow / 2;
+    const float colW = (panel.getWidth() - 20.0f) / float(kGridCols);
+    const int col = visibleRow % kGridCols, r = visibleRow / kGridCols;
     return { panel.getX() + 10.0f + float(col) * colW,
              gridY + float(r) * (kRowH + kRowGap), colW, kRowH };
+}
+
+bool OrbitPresetBrowser::rowFits(int visibleRow) const {
+    return rowBounds(visibleRow).getBottom() <= panelBounds().getBottom() - 8.0f;
 }
 
 void OrbitPresetBrowser::mouseUp(const juce::MouseEvent& e) {
@@ -104,8 +109,8 @@ void OrbitPresetBrowser::mouseUp(const juce::MouseEvent& e) {
     for (int i = 0; i <= tags.size(); ++i)
         if (chipBounds(i).contains(pos))
             return setTagFilter(i == 0 ? juce::String() : tags[i - 1]);
-    // Preset rows.
-    for (int rw = 0; rw < visible_.size(); ++rw)
+    // Preset rows — only rows the grid actually draws are clickable.
+    for (int rw = 0; rw < visible_.size() && rowFits(rw); ++rw)
         if (rowBounds(rw).contains(pos))
             return pickVisible(rw);
 }
@@ -160,12 +165,14 @@ void OrbitPresetBrowser::paint(juce::Graphics& g) {
         g.drawText(label, b, juce::Justification::centred, false);
     }
 
-    // Preset grid (two columns).
+    // Preset grid (kGridCols columns; 40 factory presets fit exactly).
     const auto current = presets_.currentPresetName();
+    int drawn = 0;
     for (int rw = 0; rw < visible_.size(); ++rw) {
+        if (!rowFits(rw))
+            break;   // no scrolling in v1 — overflow is counted below
+        ++drawn;
         const auto b = rowBounds(rw);
-        if (b.getBottom() > panel.getBottom() - 8.0f)
-            break;   // clipped: no scrolling in v1 (40 factory presets fit)
         const auto& e = visible_.getReference(rw);
         if (e.info.name == current) {
             g.setColour(theme::ember.withAlpha(0.14f));
@@ -185,6 +192,16 @@ void OrbitPresetBrowser::paint(juce::Graphics& g) {
         g.drawText(e.info.tags.upToFirstOccurrenceOf(",", false, false)
                        .trim().toUpperCase().substring(0, 3),
                    b.withX(b.getRight() - 40.0f).withWidth(30.0f),
+                   juce::Justification::centredRight, false);
+    }
+
+    // Grid overflow (user presets past capacity): say so instead of hiding it.
+    if (drawn < visible_.size()) {
+        g.setFont(fonts::tracked(fonts::monoSemiBold(8.0f), 0.12f));
+        g.setColour(theme::bone50.withAlpha(0.4f));
+        g.drawText("+" + juce::String(visible_.size() - drawn) + " MORE (USE PRESET ARROWS)",
+                   juce::Rectangle<float>(panel.getX(), panel.getBottom() - 20.0f,
+                                          panel.getWidth() - 14.0f, 12.0f),
                    juce::Justification::centredRight, false);
     }
 }

@@ -76,6 +76,34 @@ TEST_CASE("preset browser filters by tag and loads on pick") {
     CHECK(browser.visibleCount() == 40);
 }
 
+TEST_CASE("preset browser grid fits all 40 factory presets; overflow is unclickable") {
+    juce::ScopedJuceInitialiser_GUI juceInit;
+    OrbitAudioProcessor proc;
+    OrbitPresetBrowser browser { proc.presetManager() };
+    browser.setBounds(0, 0, orbit::gui::theme::kWindowW, orbit::gui::theme::kWindowH);
+    REQUIRE(browser.visibleCount() == 40);
+
+    // Every factory preset's row sits fully inside the panel; the first row
+    // past the grid capacity does not (and is therefore neither drawn nor
+    // clickable — paint and hit-testing share rowFits).
+    for (int rw = 0; rw < 40; ++rw) {
+        INFO("row " << rw);
+        CHECK(browser.rowFits(rw));
+    }
+    CHECK_FALSE(browser.rowFits(40));
+
+    // Clicking the centre of the last row loads the 40th preset.
+    const auto pos = browser.rowBounds(39).getCentre();
+    const auto name = browser.visibleName(39);
+    REQUIRE(name.isNotEmpty());
+    juce::MouseEvent up { juce::Desktop::getInstance().getMainMouseSource(),
+                          pos, {}, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f,
+                          &browser, &browser, juce::Time::getCurrentTime(), pos,
+                          juce::Time::getCurrentTime(), 1, false };
+    browser.mouseUp(up);
+    CHECK(proc.presetManager().currentPresetName() == name);
+}
+
 TEST_CASE("header children and the gear slot do not overlap at base size") {
     juce::ScopedJuceInitialiser_GUI juceInit;
     OrbitAudioProcessor proc;
