@@ -38,7 +38,7 @@ public:
 private:
     void timerCallback() override;
     void stepPreset(int delta);
-    juce::Array<orbit::PresetInfo> allPresets() const;
+    juce::Array<orbit::PresetInfo> allPresets() const;   // enumerates disk
     int currentIndex(const juce::Array<orbit::PresetInfo>&) const;
 
     OrbitAudioProcessor& proc_;
@@ -55,6 +55,10 @@ private:
     juce::Rectangle<int> gearBounds_;
     juce::String shownPresetName_;
     bool shownDirty_ = false, shownSlotB_ = false;
+    // Factory + user preset list for paint()/stepPreset(). User presets live
+    // on disk, so the enumeration is cached and refreshed only when the shown
+    // preset state changes or an arrow is clicked — never inside paint.
+    juce::Array<orbit::PresetInfo> cachedPresets_;
 
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(OrbitHeader)
 };

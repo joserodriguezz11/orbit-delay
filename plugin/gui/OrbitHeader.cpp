@@ -53,6 +53,7 @@ OrbitHeader::OrbitHeader(OrbitAudioProcessor& proc)
     addAndMakeVisible(inMeter_);
     addAndMakeVisible(outMeter_);
 
+    cachedPresets_ = allPresets();
     startTimerHz(4);   // PresetManager is poll-only by contract
 }
 
@@ -71,7 +72,8 @@ int OrbitHeader::currentIndex(const juce::Array<orbit::PresetInfo>& list) const 
 }
 
 void OrbitHeader::stepPreset(int delta) {
-    const auto list = allPresets();
+    cachedPresets_ = allPresets();   // pick up user presets saved mid-session
+    const auto& list = cachedPresets_;
     if (list.isEmpty())
         return;
     const int cur = currentIndex(list);
@@ -95,6 +97,7 @@ void OrbitHeader::timerCallback() {
         shownPresetName_ = name;
         shownDirty_ = dirty;
         shownSlotB_ = slotB;
+        cachedPresets_ = allPresets();   // state changed: re-enumerate once
         repaint();
     }
 }
@@ -158,8 +161,7 @@ void OrbitHeader::paint(juce::Graphics& g) {
         g.setColour(theme::bone50.withAlpha(0.12f));
         g.drawRoundedRectangle(cap, cap.getHeight() / 2.0f, 1.0f);
 
-        const auto list = allPresets();
-        const int cur = currentIndex(list);
+        const int cur = currentIndex(cachedPresets_);   // no disk I/O in paint
         const auto num = cur < 0 ? juce::String("--")
                                  : juce::String(cur + 1).paddedLeft('0', 2);
         const auto name = shownPresetName_.isNotEmpty() ? shownPresetName_
