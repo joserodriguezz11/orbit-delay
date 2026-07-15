@@ -165,3 +165,32 @@ TEST_CASE("render editor snapshot to /tmp", "[.snapshot]") {
     REQUIRE(stream.openedOk());
     REQUIRE(png.writeImageToStream(img, stream));
 }
+
+TEST_CASE("orb drags bracket the tap's parameters in a host automation gesture") {
+    juce::ScopedJuceInitialiser_GUI juceInit;
+    OrbitAudioProcessor proc;
+    std::unique_ptr<juce::AudioProcessorEditor> base { proc.createEditor() };
+    auto* ed = dynamic_cast<OrbitEditor*>(base.get());
+    REQUIRE(ed != nullptr);
+
+    struct GestureSpy : juce::AudioProcessorParameter::Listener {
+        int begins = 0, ends = 0;
+        void parameterValueChanged(int, float) override {}
+        void parameterGestureChanged(int, bool starting) override {
+            (starting ? begins : ends) += 1;
+        }
+    } spy;
+    auto* fb = proc.apvts.getParameter("tap1_feedback");
+    fb->addListener(&spy);
+
+    ed->orbPad().beginOrbDrag(0);
+    CHECK(spy.begins == 1);
+    CHECK(spy.ends == 0);
+    ed->orbPad().dragOrbTo(0.5f, 0.5f);
+    for (int i = 0; i < 10; ++i)
+        ed->orbPad().dragOrbTo(0.5f, 0.5f);   // decelerate under the flick EMA
+    ed->orbPad().endOrbDrag();   // slow release: no glide, gesture closes now
+    CHECK(spy.ends == 1);
+
+    fb->removeListener(&spy);
+}

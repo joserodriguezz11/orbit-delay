@@ -1,5 +1,6 @@
 #pragma once
 
+#include <array>
 #include <juce_audio_processors/juce_audio_processors.h>
 #include "PluginProcessor.h"
 #include "gui/OrbPad.h"
@@ -44,6 +45,7 @@ private:
     void refreshTap(int i);
     void refreshSyncGrid();
     void writeOrb(int i, float x, float y);
+    void setTapGesture(int i, bool begin);
 
     OrbitAudioProcessor& proc_;
     OrbPad pad_;
@@ -56,6 +58,10 @@ private:
     // Per-tap view attachments (time/feedback/sync/enabled/reverse) plus
     // character + freeze; all funnel into refreshTap()/pad setters.
     std::vector<std::unique_ptr<juce::ParameterAttachment>> viewAtts_;
+
+    // Taps with an open automation gesture (orb drag / glide / riding knob).
+    // The destructor closes any left open so hosts never see a dangling begin.
+    std::array<bool, 4> tapGestureOpen_ {};
 
     juce::ComponentBoundsConstrainer constrainer_;
 

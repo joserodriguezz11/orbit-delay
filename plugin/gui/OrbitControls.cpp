@@ -78,6 +78,7 @@ void OrbitKnob::springTick() {
 void OrbitKnob::mouseDown(const juce::MouseEvent& e) {
     juce::ignoreUnused(e);
     dragStartValue_ = getValue();
+    drag_ = std::make_unique<juce::Slider::ScopedDragNotification>(*this);
 }
 
 void OrbitKnob::mouseDrag(const juce::MouseEvent& e) {
@@ -87,16 +88,25 @@ void OrbitKnob::mouseDrag(const juce::MouseEvent& e) {
              juce::sendNotificationSync);
 }
 
+void OrbitKnob::mouseUp(const juce::MouseEvent&) {
+    drag_.reset();
+}
+
 void OrbitKnob::mouseDoubleClick(const juce::MouseEvent&) {
+    drag_.reset();   // the second click's mouseDown opened a drag — close it
+    juce::Slider::ScopedDragNotification gesture { *this };
     resetToDefault();
 }
 
 void OrbitKnob::mouseWheelMove(const juce::MouseEvent& e,
                                const juce::MouseWheelDetails& wheel) {
+    if (drag_ != nullptr)
+        return;   // no wheel while a drag gesture is open
     // JUCE deltaY is positive scrolling up; the mockup math uses DOM signs.
     const double domDeltaY = double(-wheel.deltaY);
     if (domDeltaY == 0.0)
         return;
+    juce::Slider::ScopedDragNotification gesture { *this };
     setValue(wheeledValue(getValue(), domDeltaY, getMinimum(), getMaximum(),
                           getInterval(), e.mods.isShiftDown()),
              juce::sendNotificationSync);

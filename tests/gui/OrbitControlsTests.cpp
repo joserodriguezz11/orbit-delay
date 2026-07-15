@@ -6,10 +6,28 @@
 #include <catch2/catch_test_macros.hpp>
 #include <catch2/catch_approx.hpp>
 #include "gui/OrbitControls.h"
+#include "TestProcessor.h"
 
 using Catch::Approx;
 
 namespace {
+
+// Counts begin/endChangeGesture on a parameter (what a DAW's touch
+// automation sees).
+struct GestureSpy : juce::AudioProcessorParameter::Listener {
+    int begins = 0, ends = 0;
+    void parameterValueChanged(int, float) override {}
+    void parameterGestureChanged(int, bool starting) override {
+        (starting ? begins : ends) += 1;
+    }
+};
+
+juce::MouseEvent mouseEventAt(juce::Component& c, juce::Point<float> pos) {
+    return { juce::Desktop::getInstance().getMainMouseSource(),
+             pos, {}, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f,
+             &c, &c, juce::Time::getCurrentTime(), pos,
+             juce::Time::getCurrentTime(), 1, false };
+}
 bool imageHasInk(const juce::Image& img) {
     for (int y = 0; y < img.getHeight(); ++y)
         for (int x = 0; x < img.getWidth(); ++x)
@@ -167,4 +185,43 @@ TEST_CASE("OrbitMeter paints ink from its level getter") {
     meter.setSize(5, 26);
     meter.refreshNow();  // pull a level outside the vblank loop
     CHECK(imageHasInk(paintToImage(meter)));
+}
+
+// -------------------------------------------------- automation gestures
+
+TEST_CASE("knob drag, wheel, and double-click bracket host automation gestures") {
+    juce::ScopedJuceInitialiser_GUI juceInit;
+    TestProcessor proc;
+    OrbitKnob knob;
+    knob.setBounds(0, 0, 56, 56);
+    juce::AudioProcessorValueTreeState::SliderAttachment att {
+        proc.apvts, orbit::params::kDryWetId, knob };
+
+    GestureSpy spy;
+    auto* param = proc.apvts.getParameter(orbit::params::kDryWetId);
+    param->addListener(&spy);
+
+    // Drag: gesture opens on mouse-down, value moves inside it, closes on up.
+    const auto down = mouseEventAt(knob, { 28.0f, 28.0f });
+    knob.mouseDown(down);
+    CHECK(spy.begins == 1);
+    CHECK(spy.ends == 0);
+    knob.mouseUp(down);
+    CHECK(spy.ends == 1);
+
+    // Wheel: a self-contained begin -> set -> end.
+    juce::MouseWheelDetails wheel {};
+    wheel.deltaY = -0.5f;
+    knob.mouseWheelMove(mouseEventAt(knob, { 28.0f, 28.0f }), wheel);
+    CHECK(spy.begins == 2);
+    CHECK(spy.ends == 2);
+
+    // Double-click reset: bracketed, and balanced against the second
+    // mouse-down's open gesture.
+    knob.mouseDown(down);
+    knob.mouseDoubleClick(down);
+    knob.mouseUp(down);
+    CHECK(spy.begins == spy.ends);
+
+    param->removeListener(&spy);
 }

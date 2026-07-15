@@ -111,6 +111,24 @@ OrbPad::OrbPad() {
         if (onOrbMove != nullptr)
             onOrbMove(sel_, x, tp.y);
     };
+    // Riding-knob turns are automation gestures on the selected tap. The tap
+    // is captured at gesture start so a selection change mid-turn can't
+    // unbalance the bracket.
+    const auto knobGestureStart = [this] {
+        knobGestureTap_ = sel_;
+        if (onOrbGesture != nullptr)
+            onOrbGesture(sel_, true);
+    };
+    const auto knobGestureEnd = [this] {
+        if (knobGestureTap_ >= 0 && onOrbGesture != nullptr)
+            onOrbGesture(knobGestureTap_, false);
+        knobGestureTap_ = -1;
+    };
+    timeKnob_.onDragStart = knobGestureStart;
+    timeKnob_.onDragEnd = knobGestureEnd;
+    fbKnob_.onDragStart = knobGestureStart;
+    fbKnob_.onDragEnd = knobGestureEnd;
+
     configureTimeKnob();
     syncKnobsFromTap();
 }
@@ -242,13 +260,21 @@ juce::Point<float> OrbPad::toNorm(juce::Point<float> p) const {
 void OrbPad::beginOrbDrag(int i) {
     if (i < 0 || i >= 4)
         return;
-    glide_.active = false;
+    if (glide_.active) {
+        // Interrupting a flight closes the glide's gesture before the grab
+        // opens its own (they may be the same tap — end/begin stays balanced).
+        glide_.active = false;
+        if (onOrbGesture != nullptr)
+            onOrbGesture(glideTap_, false);
+    }
     if (sel_ != i) {
         sel_ = i;
         if (onSelect != nullptr)
             onSelect(i);
     }
     dragI_ = i;
+    if (onOrbGesture != nullptr)
+        onOrbGesture(i, true);
     trail_.clear();
     velX_ = velY_ = 0.0f;
     lastX_ = taps_[size_t(i)].x;
@@ -288,8 +314,11 @@ void OrbPad::endOrbDrag() {
         glide_ = { taps_[size_t(i)].x, taps_[size_t(i)].y, velX_, velY_, true };
         // The glide keeps steering the thrown tap from animationTick — by its
         // own index, so a selection change mid-flight doesn't redirect it.
+        // Its gesture stays open until the glide settles.
         glideTap_ = i;
         hoverI_ = -1;
+    } else if (onOrbGesture != nullptr) {
+        onOrbGesture(i, false);
     }
 }
 
@@ -409,6 +438,9 @@ void OrbPad::animationTick() {
             const auto& tp = taps_[size_t(glideTap_)];
             burstSparks(glide_.x, glide_.y, theme::tapLch(tp.x, tp.y, warm_, th()));
         }
+        // Settled: the flick's gesture closes with the last write.
+        if (!glide_.active && onOrbGesture != nullptr)
+            onOrbGesture(glideTap_, false);
     }
 
     // Sparks fly and fade; stale trail/flash entries drop off.

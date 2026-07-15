@@ -1,5 +1,6 @@
 #pragma once
 
+#include <memory>
 #include <juce_gui_basics/juce_gui_basics.h>
 #include "OrbitTheme.h"
 
@@ -48,6 +49,7 @@ public:
     void paint(juce::Graphics&) override;
     void mouseDown(const juce::MouseEvent&) override;
     void mouseDrag(const juce::MouseEvent&) override;
+    void mouseUp(const juce::MouseEvent&) override;
     void mouseDoubleClick(const juce::MouseEvent&) override;
     void mouseWheelMove(const juce::MouseEvent&, const juce::MouseWheelDetails&) override;
 
@@ -59,6 +61,11 @@ private:
     double default_ = 0.0;
     bool hasDefault_ = false;
     double dragStartValue_ = 0.0;
+    // Open drag gesture: fires sliderDragStarted/Ended so APVTS attachments
+    // bracket the host automation gesture (begin/endChangeGesture). The
+    // custom mouse handlers bypass Slider's own drag pipeline, so the
+    // notification is sent explicitly.
+    std::unique_ptr<juce::Slider::ScopedDragNotification> drag_;
     Spring spring_;
     bool springInitialised_ = false;
     juce::VBlankAttachment vblank_ { this, [this] { springTick(); } };

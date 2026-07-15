@@ -71,6 +71,12 @@ public:
 
     std::function<void(int, float, float)> onOrbMove;
     std::function<void(int)> onSelect;
+    // Gesture bracket around a tap's writes: (tap, true) when a drag, glide
+    // or riding-knob turn starts writing it, (tap, false) when it stops. The
+    // editor maps these onto begin/endChangeGesture so hosts see orb moves
+    // as automation gestures. A flick holds the gesture open until the glide
+    // settles.
+    std::function<void(int, bool)> onOrbGesture;
 
     void setTap(int i, const TapView& tap);
     void setSelected(int i);              // silent (editor-driven)
@@ -137,6 +143,7 @@ private:
     OrbitKnob timeKnob_, fbKnob_;
     bool timeKnobStepped_ = false;   // current mode of the TIME knob
     bool knobGuard_ = false;         // suppress write-back while mirroring
+    int knobGestureTap_ = -1;        // tap a riding-knob gesture opened on
 
     // Drag state.
     int dragI_ = -1, hoverI_ = -1;

@@ -142,6 +142,61 @@ TEST_CASE("an active glide keeps steering the thrown tap after selection changes
     CHECK(pad.selected() == 2);  // ...and selection stays where the user put it
 }
 
+TEST_CASE("orb drags emit gesture begin/end; a flick holds the gesture until the glide settles") {
+    juce::ScopedJuceInitialiser_GUI juceInit;
+    OrbPad pad;
+    pad.setSize(orbit::gui::theme::kPadW, orbit::gui::theme::kPadH);
+    for (int i = 0; i < 4; ++i)
+        pad.setTap(i, { true, 0.5f, 0.5f, false, false });
+
+    std::vector<std::pair<int, bool>> gestures;
+    pad.onOrbGesture = [&] (int i, bool begin) { gestures.push_back({ i, begin }); };
+
+    // Slow drag: gesture opens on grab and closes on release.
+    pad.beginOrbDrag(0);
+    REQUIRE(gestures.size() == 1);
+    CHECK(gestures[0] == std::pair<int, bool>(0, true));
+    pad.dragOrbTo(0.5f, 0.5f);
+    pad.endOrbDrag();
+    REQUIRE(gestures.size() == 2);
+    CHECK(gestures[1] == std::pair<int, bool>(0, false));
+
+    // Flick: the release launches a glide, so the gesture stays open until
+    // the glide settles (the tap keeps receiving writes while it flies).
+    pad.beginOrbDrag(1);
+    pad.dragOrbTo(0.5f, 0.5f);
+    pad.dragOrbTo(0.6f, 0.5f);
+    pad.endOrbDrag();
+    REQUIRE(gestures.size() == 3);
+    CHECK(gestures[2] == std::pair<int, bool>(1, true));
+    for (int i = 0; i < 20000 && gestures.size() < 4; ++i)
+        pad.animationTick();
+    REQUIRE(gestures.size() == 4);
+    CHECK(gestures[3] == std::pair<int, bool>(1, false));
+}
+
+TEST_CASE("grabbing an orb mid-glide closes the glide's gesture first") {
+    juce::ScopedJuceInitialiser_GUI juceInit;
+    OrbPad pad;
+    pad.setSize(orbit::gui::theme::kPadW, orbit::gui::theme::kPadH);
+    for (int i = 0; i < 4; ++i)
+        pad.setTap(i, { true, 0.5f, 0.5f, false, false });
+
+    std::vector<std::pair<int, bool>> gestures;
+    pad.onOrbGesture = [&] (int i, bool begin) { gestures.push_back({ i, begin }); };
+
+    pad.beginOrbDrag(0);
+    pad.dragOrbTo(0.5f, 0.5f);
+    pad.dragOrbTo(0.6f, 0.5f);
+    pad.endOrbDrag();            // tap 0 glides; its gesture is open
+
+    pad.beginOrbDrag(2);         // grab tap 2 while tap 0 still flies
+    REQUIRE(gestures.size() == 3);
+    CHECK(gestures[1] == std::pair<int, bool>(0, false));  // glide closed...
+    CHECK(gestures[2] == std::pair<int, bool>(2, true));   // ...before the grab opens
+    pad.endOrbDrag();
+}
+
 // -------------------------------------------------------- riding knobs
 
 TEST_CASE("riding knobs mirror the selected tap and write back through onOrbMove") {

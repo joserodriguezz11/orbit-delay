@@ -59,6 +59,7 @@ OrbitEditor::OrbitEditor(OrbitAudioProcessor& proc)
     pad_.onSelect = [this] (int i) { setSelectedTap(i); };
     strip_.onSelect = [this] (int i) { setSelectedTap(i); };
     pad_.onOrbMove = [this] (int i, float x, float y) { writeOrb(i, x, y); };
+    pad_.onOrbGesture = [this] (int i, bool begin) { setTapGesture(i, begin); };
 
     // Any tap parameter change refreshes that tap's pad view + strip colour.
     for (int i = 0; i < 4; ++i) {
@@ -97,7 +98,13 @@ OrbitEditor::OrbitEditor(OrbitAudioProcessor& proc)
     setSize(kBaseW, kBaseH);
 }
 
-OrbitEditor::~OrbitEditor() = default;
+OrbitEditor::~OrbitEditor() {
+    // A window can close mid-drag or mid-glide: never leave a host gesture
+    // dangling.
+    pad_.onOrbGesture = nullptr;
+    for (int i = 0; i < 4; ++i)
+        setTapGesture(i, false);
+}
 
 void OrbitEditor::timerCallback() {
     refreshSyncGrid();
@@ -149,6 +156,23 @@ void OrbitEditor::refreshSyncGrid() {
     std::sort(grid.begin(), grid.end(),
               [] (const auto& a, const auto& b) { return a.x < b.x; });
     pad_.setSyncGrid(std::move(grid));
+}
+
+void OrbitEditor::setTapGesture(int i, bool begin) {
+    // Everything writeOrb can touch is bracketed as one gesture, so hosts in
+    // touch/latch mode latch the whole orb move (time + feedback + sync).
+    if (i < 0 || i >= 4 || tapGestureOpen_[size_t(i)] == begin)
+        return;
+    tapGestureOpen_[size_t(i)] = begin;
+    for (const auto& id : { orbit::params::tapTimeId(i),
+                            orbit::params::tapFeedbackId(i),
+                            orbit::params::tapSyncId(i) }) {
+        auto* param = proc_.apvts.getParameter(id);
+        if (begin)
+            param->beginChangeGesture();
+        else
+            param->endChangeGesture();
+    }
 }
 
 void OrbitEditor::writeOrb(int i, float x, float y) {
