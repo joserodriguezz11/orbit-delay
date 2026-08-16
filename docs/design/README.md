@@ -56,6 +56,13 @@ Deliberate deviations from the mockup (all UI-side, engine-faithful):
   and strip readout all span the parameter's full 0–0.98 range (mockup
   used a 95 full-scale). Riding-knob double-click resets to the parameter
   defaults: 35% feedback, 350ms time.
+- **Wave-4 viz animation** (not in mockup — the mockup only simulated
+  motion): output RMS breathes the orbit rings and tap halos; ducking
+  strains the drawn orbs a few px away from pad centre and dims their
+  glow (paint-only — crosshair, halos and hit-testing stay on parameter
+  truth); freeze crossfades the whole field to a cold desaturated tint
+  (hue → 250°, chroma × 0.25) with the frost rings fading in, and held
+  fire pulses stop decaying while frozen.
 
 ## Fonts
 
