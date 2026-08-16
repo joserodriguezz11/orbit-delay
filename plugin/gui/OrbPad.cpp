@@ -571,14 +571,14 @@ void OrbPad::paint(juce::Graphics& g) {
         g.fillRect(0.0f, 0.0f, W, H);
     }
 
-    // Watermark — fitted so ORBIT never clips at any pad width.
+    // Watermark — fitted so ORBITUM never clips at any pad width.
     {
         const float wmBase = 190.0f;
-        const float wmW = fonts::watermark(wmBase).getStringWidthFloat("ORBIT");
+        const float wmW = fonts::watermark(wmBase).getStringWidthFloat("ORBITUM");
         const float wmH = orbpad::watermarkHeight(wmBase, wmW, W - 40.0f);
         g.setFont(fonts::watermark(wmH));
         g.setColour(theme::bone50.withAlpha(0.032f));
-        g.drawText("ORBIT",
+        g.drawText("ORBITUM",
                    juce::Rectangle<float>(0.0f, H / 2.0f + 8.0f - wmH / 2.0f, W, wmH),
                    juce::Justification::centred, false);
     }

@@ -69,7 +69,7 @@ void OrbitSettingsPanel::paint(juce::Graphics& g) {
     y += 26.0f;
     g.setFont(fonts::sansSemiBold(14.0f));
     g.setColour(theme::text());
-    g.drawText("ORBIT",
+    g.drawText("ORBITUM",
                juce::Rectangle<float>(panel.getX() + 27.0f, y, 300.0f, 16.0f),
                juce::Justification::centredLeft, false);
     y += 20.0f;

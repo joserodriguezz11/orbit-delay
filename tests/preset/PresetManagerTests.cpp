@@ -331,3 +331,28 @@ TEST_CASE_METHOD(Fixture, "factory presets reference only real parameter IDs") {
         }
     }
 }
+
+TEST_CASE("user preset dir migrates Synthios/Orbit to Synthios/Orbitum once") {
+    juce::TemporaryFile scratch;
+    const auto root = scratch.getFile().getSiblingFile("orbitum-migration-test");
+    root.createDirectory();
+
+    // Legacy layout with a saved preset in it.
+    const auto legacy = root.getChildFile("Synthios").getChildFile("Orbit")
+                            .getChildFile("Presets");
+    legacy.createDirectory();
+    legacy.getChildFile("01_Test.orbitpreset").replaceWithText("x");
+
+    const auto dir = orbit::PresetManager::resolveUserPresetDirectory(root);
+    CHECK(dir == root.getChildFile("Synthios").getChildFile("Orbitum")
+                     .getChildFile("Presets"));
+    CHECK(dir.getChildFile("01_Test.orbitpreset").existsAsFile());
+    CHECK(!legacy.exists());   // moved, not copied
+
+    // Second resolve is a no-op on the migrated tree.
+    const auto again = orbit::PresetManager::resolveUserPresetDirectory(root);
+    CHECK(again == dir);
+    CHECK(dir.getChildFile("01_Test.orbitpreset").existsAsFile());
+
+    root.deleteRecursively();
+}

@@ -68,6 +68,10 @@ public:
     bool isSlotB() const; // false = slot A live
 
     static juce::File userPresetDirectory();  // created on demand
+    // Resolves Synthios/Orbitum/Presets under the given app-data root,
+    // moving a legacy Synthios/Orbit tree there first if one exists
+    // (one-time rename — saved user presets survive the product rename).
+    static juce::File resolveUserPresetDirectory(const juce::File& appDataRoot);
 
 private:
     void parameterChanged(const juce::String& parameterID, float newValue) override;
