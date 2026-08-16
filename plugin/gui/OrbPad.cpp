@@ -71,6 +71,39 @@ float watermarkHeight(float baseHeight, float stringWidthAtBase,
     return baseHeight * availableWidth / stringWidthAtBase;
 }
 
+float stepEnvelope(float current, float target, float attackRate,
+                   float releaseRate, float dt) {
+    const float rate = target > current ? attackRate : releaseRate;
+    current += (target - current) * (1.0f - std::exp(-rate * dt));
+    return std::abs(target - current) < 0.0005f ? target : current;
+}
+
+juce::Point<float> duckOffset(float px, float py, float duck01) {
+    constexpr float kPushPx = 7.0f;
+    const float dx = px - float(orbit::gui::theme::kPadW) / 2.0f;
+    const float dy = py - float(orbit::gui::theme::kPadH) / 2.0f;
+    const float len = std::hypot(dx, dy);
+    if (duck01 <= 0.0f || len < 1e-3f)
+        return {};
+    const float push = kPushPx * duck01 / len;
+    return { dx * push, dy * push };
+}
+
+orbit::gui::theme::Lch frozenLch(orbit::gui::theme::Lch c, float mix) {
+    constexpr float kIceHue = 250.0f;
+    float dh = kIceHue - c.h;                 // shortest way round the wheel
+    if (dh > 180.0f)  dh -= 360.0f;
+    if (dh < -180.0f) dh += 360.0f;
+    float h = c.h + dh * mix;
+    if (h < 0.0f)    h += 360.0f;
+    if (h >= 360.0f) h -= 360.0f;
+    return { c.l + 0.06f * mix, c.c * (1.0f - 0.75f * mix), h };
+}
+
+float stepFire(float env, bool frozen, float dt) {
+    return frozen ? env : env * std::exp(-4.5f * dt);
+}
+
 } // namespace orbpad
 
 // ---------------------------------------------------------------- component

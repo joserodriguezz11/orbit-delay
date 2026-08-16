@@ -50,6 +50,26 @@ bool scaleLabelVisible(juce::Rectangle<float> label,
 // into availableWidth — scales down proportionally, never up.
 float watermarkHeight(float baseHeight, float stringWidthAtBase, float availableWidth);
 
+// Viz envelope: exponential approach with separate attack (rising) and
+// release (falling) rates; snaps onto the target within 0.0005 so the
+// repaint gate can settle instead of chasing an asymptote.
+float stepEnvelope(float current, float target, float attackRate,
+                   float releaseRate, float dt);
+
+// Ducking pushes an orb's *painted* position radially away from pad centre —
+// up to 7 design px at full duck. Paint-only: hit-testing and parameter truth
+// stay on the real position. Zero at pad centre (nothing to normalise).
+juce::Point<float> duckOffset(float px, float py, float duck01);
+
+// Freeze ice-over: lerps a tap colour toward a cold blue-white — chroma
+// collapses to a quarter, hue takes the short way round to 250°, lightness
+// lifts a touch. mix 0 = identity, 1 = fully iced.
+orbit::gui::theme::Lch frozenLch(orbit::gui::theme::Lch c, float mix);
+
+// Fire-pulse decay (rate 4.5), paused while frozen: the buffer is held,
+// so is its light.
+float stepFire(float env, bool frozen, float dt);
+
 } // namespace orbpad
 
 // The orb field (kPadW x kPadH): character-themed background, orbit rings, watermark,

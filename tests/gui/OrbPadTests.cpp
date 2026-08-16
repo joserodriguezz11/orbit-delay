@@ -289,3 +289,77 @@ TEST_CASE("watermark height scales down to fit the pad, never up") {
     // Degenerate width: clamps to a positive floor, no divide-by-zero.
     CHECK(orbpad::watermarkHeight(190.0f, 0.0f, 690.0f) == Approx(190.0f));
 }
+
+// ------------------------------------------------------ viz envelopes (W4)
+
+TEST_CASE("viz envelope attacks at the attack rate and releases at the release rate") {
+    const float dt = 1.0f / 60.0f;
+    // Rising: one step toward 1 at attack rate 8.
+    const float up = orbpad::stepEnvelope(0.0f, 1.0f, 8.0f, 2.0f, dt);
+    CHECK(up == Approx(1.0f - std::exp(-8.0f * dt)).margin(1e-4));
+    // Falling from that level uses the (slower) release rate 2.
+    const float down = orbpad::stepEnvelope(up, 0.0f, 8.0f, 2.0f, dt);
+    CHECK(down == Approx(up * std::exp(-2.0f * dt)).margin(1e-4));
+    CHECK(down < up);
+    // Never overshoots the target.
+    float v = 0.0f;
+    for (int i = 0; i < 2000; ++i)
+        v = orbpad::stepEnvelope(v, 0.7f, 8.0f, 2.0f, dt);
+    CHECK(v == Approx(0.7f).margin(1e-3));
+    CHECK(v <= 0.7f + 1e-4f);
+    // A hair from the target it snaps exactly, so repaint gates can settle.
+    CHECK(orbpad::stepEnvelope(0.7004f, 0.7f, 8.0f, 2.0f, dt) == Approx(0.7f));
+}
+
+TEST_CASE("duck offset pushes an orb away from pad centre, capped, centre-safe") {
+    constexpr float cx = float(orbit::gui::theme::kPadW) / 2.0f;
+    constexpr float cy = float(orbit::gui::theme::kPadH) / 2.0f;
+
+    // Right of centre: pushed further right, no vertical component.
+    const auto r = orbpad::duckOffset(cx + 100.0f, cy, 1.0f);
+    CHECK(r.x == Approx(7.0f).margin(1e-3));
+    CHECK(r.y == Approx(0.0f).margin(1e-3));
+    // Above centre: pushed further up (negative y in pixel space).
+    const auto u = orbpad::duckOffset(cx, cy - 80.0f, 1.0f);
+    CHECK(u.x == Approx(0.0f).margin(1e-3));
+    CHECK(u.y == Approx(-7.0f).margin(1e-3));
+    // Half duck scales linearly.
+    const auto h = orbpad::duckOffset(cx + 100.0f, cy, 0.5f);
+    CHECK(h.x == Approx(3.5f).margin(1e-3));
+    // Dead centre: zero offset, no NaN from normalising a zero vector.
+    const auto c = orbpad::duckOffset(cx, cy, 1.0f);
+    CHECK(c.x == 0.0f);
+    CHECK(c.y == 0.0f);
+    // No duck: zero regardless of position.
+    const auto z = orbpad::duckOffset(cx + 100.0f, cy + 50.0f, 0.0f);
+    CHECK(z.x == 0.0f);
+    CHECK(z.y == 0.0f);
+}
+
+TEST_CASE("frozen tint desaturates and swings hue toward ice blue") {
+    const orbit::gui::theme::Lch warm { 0.55f, 0.24f, 29.0f };
+    // mix 0: identity.
+    const auto same = orbpad::frozenLch(warm, 0.0f);
+    CHECK(same.l == Approx(warm.l));
+    CHECK(same.c == Approx(warm.c));
+    CHECK(same.h == Approx(warm.h));
+    // mix 1: hue lands on the ice hue, chroma collapses to a quarter,
+    // lightness lifts slightly (frost reads brighter, not darker).
+    const auto iced = orbpad::frozenLch(warm, 1.0f);
+    CHECK(iced.h == Approx(250.0f).margin(0.5f));
+    CHECK(iced.c == Approx(warm.c * 0.25f).margin(1e-3));
+    CHECK(iced.l > warm.l);
+    // Half mix sits between, and the hue takes the short way round the wheel
+    // (29 -> 250 shortest path is downward through red, not up through green).
+    const auto half = orbpad::frozenLch(warm, 0.5f);
+    CHECK(half.c == Approx((warm.c + iced.c) / 2.0f).margin(1e-3));
+    CHECK((half.h < warm.h || half.h > 250.0f));  // wrapped path, not 139.5
+}
+
+TEST_CASE("fire envelope decays when live and holds under freeze") {
+    const float dt = 1.0f / 60.0f;
+    const float live = orbpad::stepFire(0.8f, false, dt);
+    CHECK(live == Approx(0.8f * std::exp(-4.5f * dt)).margin(1e-4));
+    // Frozen: the pulse holds — the buffer is held, so is its light.
+    CHECK(orbpad::stepFire(0.8f, true, dt) == Approx(0.8f));
+}
