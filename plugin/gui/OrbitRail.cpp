@@ -81,26 +81,36 @@ void OrbitRail::resized() {
         k.setBounds(int(x), int(y + rowH - float(s)), s, s);
     };
 
+    // The second column right-anchors to the rail's right padding, so the
+    // two columns spread across the full width instead of leaving a dead
+    // right margin (left-flowed columns only filled ~134 of the 170px).
+    const auto placeRight = [&] (Knob which, float rowH) {
+        const float s = float(kSpecs[size_t(which)].size);
+        place(which, float(getWidth()) - kPadX - s, rowH);
+    };
+
     // BLEND: MIX 56 + DUCK 44 (+ meter under the duck label).
     place(Knob::Mix, kPadX, 56.0f);
-    place(Knob::Duck, kPadX + 56.0f + kKnobGap, 56.0f);
-    duckMeter_.setBounds(int(kPadX + 56.0f + kKnobGap), int(y + 56.0f + kLabelH + 3.0f), 44, 4);
+    placeRight(Knob::Duck, 56.0f);
+    duckMeter_.setBounds(int(float(getWidth()) - kPadX - 44.0f),
+                         int(y + 56.0f + kLabelH + 3.0f), 44, 4);
     y += 56.0f + kLabelH + 9.0f + gap + kHeaderH + kHeaderGap;
 
     // SPACE: WIDTH 44 + P-PONG switch (centre-aligned with the knob).
     place(Knob::Width, kPadX, 44.0f);
-    pingPong_.setBounds(int(kPadX + 44.0f + kKnobGap), int(y + (44.0f - OrbitSwitch::kHeight) / 2.0f),
+    pingPong_.setBounds(int(float(getWidth()) - kPadX - float(OrbitSwitch::kWidth)),
+                        int(y + (44.0f - OrbitSwitch::kHeight) / 2.0f),
                         OrbitSwitch::kWidth, OrbitSwitch::kHeight);
     y += 44.0f + kLabelH + gap + kHeaderH + kHeaderGap;
 
     // MOTION: DEPTH + RATE.
     place(Knob::ModDepth, kPadX, 44.0f);
-    place(Knob::ModRate, kPadX + 44.0f + kKnobGap, 44.0f);
+    placeRight(Knob::ModRate, 44.0f);
     y += 44.0f + kLabelH + gap + kHeaderH + kHeaderGap;
 
     // FILTER: LO CUT + HI CUT.
     place(Knob::LowCut, kPadX, 44.0f);
-    place(Knob::HighCut, kPadX + 44.0f + kKnobGap, 44.0f);
+    placeRight(Knob::HighCut, 44.0f);
 }
 
 void OrbitRail::paint(juce::Graphics& g) {

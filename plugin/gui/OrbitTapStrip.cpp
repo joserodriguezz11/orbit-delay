@@ -9,7 +9,8 @@ using orbit::dsp::SyncDivision;
 
 namespace {
 
-// The enable dot: a 26px numbered circle button filled with the tap accent.
+// The enable dot: a numbered circle button filled with the tap accent,
+// sized by its bounds (16px in the compact card's top-left corner).
 class TapDot : public juce::Button {
 public:
     explicit TapDot(int number) : juce::Button("tap dot"), number_(number) {
@@ -24,8 +25,8 @@ public:
             g.fillEllipse(b);
         }
         g.setColour(on ? accent_ : theme::bone50.withAlpha(0.3f));
-        g.drawEllipse(b, 1.5f);
-        g.setFont(fonts::monoSemiBold(10.0f));
+        g.drawEllipse(b, 1.2f);
+        g.setFont(fonts::monoSemiBold(juce::jmin(10.0f, getHeight() * 0.6f)));
         g.setColour(on ? theme::ink900 : theme::bone50.withAlpha(0.45f));
         g.drawText(juce::String(number_), getLocalBounds(),
                    juce::Justification::centred, false);
@@ -107,31 +108,24 @@ public:
     }
 
     void resized() override {
-        // Design: padding 0 14, dot 26 centred, pills column, pitch right.
+        // Compact two-row card (~113px wide): the numbered dot sits in the
+        // top-left corner, the time/FB readout runs beside it, SYNC and REV
+        // sit side-by-side along the bottom, and the pitch knob keeps the
+        // right edge. No element shares a band with another, so the narrow
+        // card cannot collide.
         const int h = getHeight();
         const int w = getWidth();
-        dot_.setBounds(14, (h - 26) / 2, 26, 26);
+        dot_.setBounds(8, 4, 16, 16);
 
-        // Pitch knob stays right-anchored on the card's right margin.
-        constexpr int pitchW = 34;
-        const int pitchX = w - 14 - pitchW;
-        pitch_.setBounds(pitchX, (h - pitchW) / 2 - 4, pitchW, pitchW);
+        constexpr int pitchW = 28;
+        const int pitchX = w - 8 - pitchW;
+        pitch_.setBounds(pitchX, 18, pitchW, pitchW);
 
-        // Pills are right-anchored to the pitch knob with a fixed clearance,
-        // rather than a left-anchored fixed offset — at the narrower ~211px
-        // card (900px window rebase) a fixed pillX collided with the knob.
-        // Clearance comfortably clears the >=6px requirement.
-        constexpr int pillW = 40;
-        constexpr int pillClearance = 7;
-        const int pillX = pitchX - pillClearance - pillW;
-        sync_.setBounds(pillX, h / 2 - 22, pillW, 20);
-        rev_.setBounds(pillX, h / 2 + 2, pillW, 20);
+        sync_.setBounds(8, h - 26, 32, 18);
+        rev_.setBounds(44, h - 26, 30, 18);
 
-        // The time/FB readout fills the space between the dot and the pill
-        // column, capped at the original design width so unshrunk cards
-        // keep their look.
-        const int readoutLeft = 14 + 26 + 12;
-        readoutW_ = juce::jlimit(24, 64, pillX - 12 - readoutLeft);
+        // Readout spans from the dot to the pitch knob.
+        readoutW_ = juce::jlimit(24, 64, pitchX - 6 - 30);
     }
 
     void paint(juce::Graphics& g) override {
@@ -152,20 +146,20 @@ public:
             g.fillRect(b.getX() + 6.0f, b.getBottom() - 2.0f, b.getWidth() - 12.0f, 2.0f);
         }
 
-        // Readout: big time, small FB%.
-        const float tx = 14.0f + 26.0f + 12.0f;
+        // Readout: big time, small FB% — top rows beside the corner dot.
+        const float tx = 30.0f;
         const float readoutW = float(readoutW_);
-        g.setFont(fonts::monoSemiBold(14.0f));
+        g.setFont(fonts::monoSemiBold(13.0f));
         g.setColour(theme::text());
         g.drawText(strip_.timeText(index_),
-                   juce::Rectangle<float>(tx, b.getCentreY() - 13.0f, readoutW, 14.0f),
+                   juce::Rectangle<float>(tx, 5.0f, readoutW, 14.0f),
                    juce::Justification::centredLeft, false);
         const int fbPct = juce::roundToInt(
             apvts_.getRawParameterValue(orbit::params::tapFeedbackId(index_))->load() * 100.0f);
         g.setFont(fonts::tracked(fonts::mono(8.5f), 0.08f));
         g.setColour(theme::bone50.withAlpha(0.45f));
         g.drawText("FB " + juce::String(fbPct) + "%",
-                   juce::Rectangle<float>(tx, b.getCentreY() + 2.0f, readoutW, 9.0f),
+                   juce::Rectangle<float>(tx, 21.0f, readoutW, 9.0f),
                    juce::Justification::centredLeft, false);
 
         // PITCH caption under the knob.

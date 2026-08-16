@@ -120,16 +120,16 @@ TEST_CASE("selecting a row notifies once with the row index") {
     CHECK(selected == 3);
 }
 
-TEST_CASE("tap strip pills and pitch knob don't overlap at the 900px window width") {
-    // Regression guard for the 900x550 window rebase: each card shrank from
-    // 281px to ~211px and a fixed pillX offset let the PITCH knob overlap
-    // the SYNC/REV pills by 11px. dot/sync/rev/pitch are siblings within the
-    // same row (card), so their getBounds() share one coordinate space and
-    // are directly comparable without translating into strip-space.
+TEST_CASE("tap strip named children don't overlap at the pad-wide strip") {
+    // Regression guard across re-bases: dot/sync/rev/pitch are siblings
+    // within the same row (card), so their getBounds() share one coordinate
+    // space and are directly comparable without translating into strip-space.
+    // (The generic all-children sweep below covers the same ground; this one
+    // names the controls so a failure reads immediately.)
     juce::ScopedJuceInitialiser_GUI juceInit;
     TestProcessor proc;
     OrbitTapStrip strip { proc.apvts, [] { return 120.0; } };
-    strip.setBounds(0, 0, orbit::gui::theme::kWindowW, orbit::gui::theme::kTapStripH);
+    strip.setBounds(0, 0, orbit::gui::theme::kPadW, orbit::gui::theme::kTapStripH);
 
     for (int i = 0; i < 4; ++i) {
         const std::vector<juce::Rectangle<int>> rects {
@@ -143,11 +143,6 @@ TEST_CASE("tap strip pills and pitch knob don't overlap at the 900px window widt
                 INFO("tap " << i << ": rect " << int(a) << " vs " << int(b));
                 CHECK_FALSE(rects[a].intersects(rects[b]));
             }
-        // >=6px clearance between the pills' right edge and the knob's left
-        // edge — the specific gap that regressed.
-        INFO("tap " << i);
-        CHECK(strip.pitchKnob(i).getX() - strip.syncPill(i).getRight() >= 6);
-        CHECK(strip.pitchKnob(i).getX() - strip.revPill(i).getRight() >= 6);
     }
 }
 
@@ -160,4 +155,45 @@ TEST_CASE("rail sections distribute evenly over the full column height") {
     CHECK(OrbitRail::sectionGap(402.0f) == Approx((402.0f - 361.0f) / 3.0f));
     // Never collapses below the 6px floor, even in a too-short column.
     CHECK(OrbitRail::sectionGap(300.0f) == Approx(6.0f));
+}
+
+TEST_CASE("rail right column anchors to the right padding — no dead margin") {
+    juce::ScopedJuceInitialiser_GUI juceInit;
+    TestProcessor proc;
+    OrbitRail rail { proc.apvts, [] { return 0.0f; } };
+    rail.setBounds(0, 0, orbit::gui::theme::kRailW, orbit::gui::theme::kRailH);
+
+    const int rightEdge = orbit::gui::theme::kRailW - 16;
+    CHECK(rail.knob(OrbitRail::Knob::Duck).getRight() == rightEdge);
+    CHECK(rail.knob(OrbitRail::Knob::ModRate).getRight() == rightEdge);
+    CHECK(rail.knob(OrbitRail::Knob::HighCut).getRight() == rightEdge);
+    CHECK(rail.pingPong().getRight() == rightEdge);
+}
+
+TEST_CASE("tap strip card children never overlap and the dot sits top-left") {
+    juce::ScopedJuceInitialiser_GUI juceInit;
+    TestProcessor proc;
+    OrbitTapStrip strip { proc.apvts, [] { return 120.0; } };
+    strip.setBounds(0, 0, orbit::gui::theme::kPadW, orbit::gui::theme::kTapStripH);
+
+    int rowsChecked = 0;
+    for (auto* row : strip.getChildren()) {
+        std::vector<juce::Rectangle<int>> rects;
+        bool cornerDot = false;
+        for (auto* c : row->getChildren())
+            if (c->isVisible() && !c->getBounds().isEmpty()) {
+                rects.push_back(c->getBounds());
+                // The enable dot lives in the card's top-left corner.
+                if (c->getBounds() == juce::Rectangle<int>(8, 4, 16, 16))
+                    cornerDot = true;
+            }
+        CHECK(cornerDot);
+        for (size_t i = 0; i < rects.size(); ++i)
+            for (size_t j = i + 1; j < rects.size(); ++j) {
+                INFO("row " << rowsChecked << ": rect " << int(i) << " vs " << int(j));
+                CHECK(!rects[i].intersects(rects[j]));
+            }
+        ++rowsChecked;
+    }
+    CHECK(rowsChecked == 4);
 }
