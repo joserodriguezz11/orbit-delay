@@ -6,7 +6,61 @@ namespace theme = orbit::gui::theme;
 namespace fonts = orbit::gui::fonts;
 
 namespace {
-constexpr int kCapsuleX = 130, kCapsuleW = 220, kCapsuleH = 30;
+// Compact 680w header: icon+wordmark to 126, capsule 164, A/B, then the
+// right cluster (seg 126, freeze, gear, meters) walking back from the edge.
+constexpr int kCapsuleX = 126, kCapsuleW = 164, kCapsuleH = 30;
+
+// Vector redraw of the Orbitum SVG mark (132x104 viewBox): a bone ring tilted
+// -16° passing behind then in front of an ink-rimmed bone planet, with an
+// ember comet streak and four-point spark. The SVG's grain filter is
+// intentionally dropped — clean vector at header size.
+void drawOrbitumMark(juce::Graphics& g, juce::Rectangle<float> area) {
+    const float s = juce::jmin(area.getWidth() / 132.0f, area.getHeight() / 104.0f);
+    juce::Graphics::ScopedSaveState save { g };
+    g.addTransform(juce::AffineTransform::scale(s).translated(
+        area.getX() + (area.getWidth() - 132.0f * s) / 2.0f,
+        area.getY() + (area.getHeight() - 104.0f * s) / 2.0f));
+
+    juce::Path ring;                              // annulus via even-odd fill
+    ring.setUsingNonZeroWinding(false);
+    ring.addEllipse(6.0f, 38.0f, 116.0f, 32.0f);  // rx 58, ry 16 about (64,54)
+    ring.addEllipse(17.5f, 42.5f, 93.0f, 23.0f);  // rx 46.5, ry 11.5
+    ring.applyTransform(juce::AffineTransform::rotation(
+        juce::degreesToRadians(-16.0f), 64.0f, 54.0f));
+
+    const auto ringHalf = [&] (juce::Rectangle<int> clip) {
+        juce::Graphics::ScopedSaveState clipSave { g };
+        g.reduceClipRegion(clip);
+        g.setColour(orbit::gui::theme::bone50);
+        g.fillPath(ring);
+        g.setColour(orbit::gui::theme::ink900);
+        g.strokePath(ring, juce::PathStrokeType { 1.3f });
+    };
+
+    ringHalf({ -60, -60, 260, 116 });             // behind the planet
+    g.setColour(orbit::gui::theme::ink900);       // rim gap around the disc
+    g.fillEllipse(37.5f, 27.5f, 53.0f, 53.0f);
+    g.setColour(orbit::gui::theme::bone50);
+    g.fillEllipse(40.0f, 30.0f, 48.0f, 48.0f);
+    ringHalf({ -60, 54, 260, 120 });              // in front of the planet
+
+    juce::Path comet;
+    comet.startNewSubPath(9.0f, 7.0f);
+    comet.cubicTo(17.0f, 12.0f, 23.0f, 17.0f, 29.0f, 22.5f);
+    comet.lineTo(26.5f, 25.5f);
+    comet.cubicTo(20.5f, 20.0f, 14.5f, 14.0f, 9.0f, 7.0f);
+    comet.closeSubPath();
+    juce::Path spark;
+    spark.startNewSubPath(33.0f, 25.5f);
+    spark.cubicTo(34.5f, 28.3f, 35.7f, 29.5f, 38.5f, 31.0f);
+    spark.cubicTo(35.7f, 32.5f, 34.5f, 33.7f, 33.0f, 36.5f);
+    spark.cubicTo(31.5f, 33.7f, 30.3f, 32.5f, 27.5f, 31.0f);
+    spark.cubicTo(30.3f, 29.5f, 31.5f, 28.3f, 33.0f, 25.5f);
+    spark.closeSubPath();
+    g.setColour(orbit::gui::theme::ember);
+    g.fillPath(comet);
+    g.fillPath(spark);
+}
 
 // Round nav/slot buttons drawn flat in the header idiom. The default
 // LookAndFeel unconditionally strokes a button outline with
@@ -103,18 +157,18 @@ void OrbitHeader::timerCallback() {
 }
 
 void OrbitHeader::resized() {
-    prev_.setBounds(kCapsuleX + 4, (52 - 24) / 2, 24, 24);
-    next_.setBounds(kCapsuleX + kCapsuleW - 28, (52 - 24) / 2, 24, 24);
+    prev_.setBounds(kCapsuleX + 2, (52 - 24) / 2, 24, 24);
+    next_.setBounds(kCapsuleX + kCapsuleW - 26, (52 - 24) / 2, 24, 24);
     presetCapsule_ = { kCapsuleX + 30, (52 - kCapsuleH) / 2,
                        kCapsuleW - 60, kCapsuleH };
-    slotA_.setBounds(kCapsuleX + kCapsuleW + 10, (52 - 24) / 2, 24, 24);
-    slotB_.setBounds(kCapsuleX + kCapsuleW + 38, (52 - 24) / 2, 24, 24);
+    slotA_.setBounds(kCapsuleX + kCapsuleW + 8, (52 - 24) / 2, 24, 24);
+    slotB_.setBounds(kCapsuleX + kCapsuleW + 34, (52 - 24) / 2, 24, 24);
 
     // Right side: seg, freeze, gear slot, divider, meters (design order).
     const int W = theme::kWindowW;
-    seg_.setBounds(W - 290 - 156, (52 - 28) / 2, 156, 28);
-    freeze_.setBounds(W - 290 + 10, (52 - 26) / 2, 66, 26);
-    gearBounds_ = { W - 110, (52 - 26) / 2, 26, 26 };
+    seg_.setBounds(W - 324, (52 - 28) / 2, 126, 28);
+    freeze_.setBounds(W - 190, (52 - 26) / 2, 56, 26);
+    gearBounds_ = { W - 104, (52 - 26) / 2, 26, 26 };
     inMeter_.setBounds(W - 46, 8, 5, 24);
     outMeter_.setBounds(W - 33, 8, 5, 24);
 }
@@ -136,21 +190,12 @@ void OrbitHeader::paint(juce::Graphics& g) {
     g.setColour(theme::bone50.withAlpha(0.10f));
     g.fillRect(0.0f, H - 1.0f, W, 1.0f);
 
-    // Logo: two rings + red core, then the stretched wordmark.
-    g.setColour(theme::bone50.withAlpha(0.85f));
-    g.drawEllipse(20.0f, 16.0f, 20.0f, 20.0f, 1.4f);
-    g.setColour(theme::bone50.withAlpha(0.26f));
-    g.drawEllipse(24.0f, 20.0f, 12.0f, 12.0f, 1.0f);
-    g.setColour(theme::ember);
-    g.fillEllipse(28.0f, 24.0f, 4.0f, 4.0f);
-    {
-        juce::Graphics::ScopedSaveState save { g };
-        g.addTransform(juce::AffineTransform::scale(1.18f, 1.0f, 51.0f, 0.0f));
-        g.setFont(fonts::tracked(fonts::sansExtraBold(16.0f), 0.06f));
-        g.setColour(theme::text());
-        g.drawText("ORBIT", juce::Rectangle<float>(51.0f, 15.0f, 90.0f, 16.0f),
-                   juce::Justification::centredLeft, false);
-    }
+    // Logo: the Orbitum planet mark, then a compact wordmark.
+    drawOrbitumMark(g, { 12.0f, 9.0f, 44.0f, 34.0f });
+    g.setFont(fonts::tracked(fonts::sansExtraBold(12.5f), 0.06f));
+    g.setColour(theme::text());
+    g.drawText("ORBITUM", juce::Rectangle<float>(60.0f, 18.0f, 64.0f, 16.0f),
+               juce::Justification::centredLeft, false);
 
     // Preset capsule.
     {
@@ -168,19 +213,19 @@ void OrbitHeader::paint(juce::Graphics& g) {
                                                         : juce::String("Init");
         g.setFont(fonts::monoSemiBold(9.0f));
         g.setColour(theme::bone50.withAlpha(0.4f));
-        g.drawText(num, cap.withX(cap.getX() + 34.0f).withWidth(20.0f),
+        g.drawText(num, cap.withX(cap.getX() + 30.0f).withWidth(18.0f),
                    juce::Justification::centredLeft, false);
         g.setFont(fonts::sansSemiBold(12.5f));
         g.setColour(theme::text());
-        g.drawText(name, cap.withX(cap.getX() + 58.0f).withWidth(cap.getWidth() - 116.0f),
+        g.drawText(name, cap.withX(cap.getX() + 48.0f).withWidth(cap.getWidth() - 96.0f),
                    juce::Justification::centred, false);
         // Dirty dot + disclosure.
         g.setColour(shownDirty_ ? theme::ember : theme::bone50.withAlpha(0.12f));
-        g.fillEllipse(cap.getRight() - 52.0f, cap.getCentreY() - 3.0f, 6.0f, 6.0f);
+        g.fillEllipse(cap.getRight() - 44.0f, cap.getCentreY() - 3.0f, 6.0f, 6.0f);
         g.setFont(fonts::mono(8.0f));
         g.setColour(theme::bone50.withAlpha(0.45f));
         g.drawText(juce::String::fromUTF8("\xe2\x96\xbe"),
-                   cap.withX(cap.getRight() - 42.0f).withWidth(14.0f),
+                   cap.withX(cap.getRight() - 34.0f).withWidth(12.0f),
                    juce::Justification::centred, false);
     }
 

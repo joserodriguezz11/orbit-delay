@@ -141,3 +141,26 @@ TEST_CASE("preset arrows carry no LookAndFeel text (glyphs painted once)") {
     CHECK(header.prevButton().getButtonText().isEmpty());
     CHECK(header.nextButton().getButtonText().isEmpty());
 }
+
+TEST_CASE("header draws the Orbitum planet mark as a solid bone disc") {
+    juce::ScopedJuceInitialiser_GUI juceInit;
+    OrbitAudioProcessor proc;
+    OrbitHeader header { proc };
+    header.setBounds(0, 0, orbit::gui::theme::kWindowW, orbit::gui::theme::kHeaderH);
+
+    juce::Image img { juce::Image::ARGB, header.getWidth(), header.getHeight(), true };
+    juce::Graphics g { img };
+    header.paintEntireComponent(g, true);
+
+    // The planet disc is a filled bone-50 circle — a solid block of near-white
+    // pixels in the icon slot. The old ring-outline logo never filled anything
+    // bone, so this count proves the new mark is being drawn.
+    int bone = 0;
+    for (int y = 6; y < 46; ++y)
+        for (int x = 10; x < 48; ++x) {
+            const auto c = img.getPixelAt(x, y);
+            if (c.getRed() > 220 && c.getGreen() > 215 && c.getBlue() > 200)
+                ++bone;
+        }
+    CHECK(bone > 100);
+}
