@@ -75,7 +75,10 @@ float stepFire(float env, bool frozen, float dt);
 // The orb field (kPadW x kPadH): character-themed background, orbit rings, watermark,
 // position-coloured tap halos and orbs, crosshair + etched rulers, drag trails
 // with heat bloom, flick-to-throw with bounce flashes and spark bursts, and
-// (beyond the static mockup) halo pulses from the engine's real TapFireEvents.
+// (beyond the static mockup) live engine reaction via the VizFeed: halo pulses
+// from real TapFireEvents, ambient ring/halo breathing with output RMS, duck
+// strain pushing drawn orbs off their true position, and a freeze ice-over
+// that cools the whole field while held pulses stop decaying.
 // The pad owns no parameters: drags emit onOrbMove(tap, x, y) and the editor
 // writes the APVTS; setTap() flows the truth back in.
 class OrbPad : public juce::Component {
@@ -180,6 +183,11 @@ private:
     std::vector<Spark> sparks_;
     std::vector<Flash> flashes_;
     std::array<float, 4> fireEnv_ {};     // real TapFireEvent pulses
+    // Wave-4 viz envelopes, stepped every tick from the feed's LevelSnapshot:
+    // ambient output energy, ducking depth, and the freeze ice-over crossfade.
+    float ambient_ = 0.0f;
+    float duckVis_ = 0.0f;
+    float freezeMix_ = 0.0f;
     double lastTick_ = 0.0;
 
     juce::VBlankAttachment vblank_ { this, [this] { animationTick(); } };

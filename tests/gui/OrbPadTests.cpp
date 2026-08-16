@@ -9,6 +9,26 @@
 
 using Catch::Approx;
 
+namespace {
+
+juce::Image renderPad(OrbPad& pad) {
+    juce::Image img { juce::Image::ARGB, pad.getWidth(), pad.getHeight(), true };
+    juce::Graphics g { img };
+    pad.paintEntireComponent(g, true);
+    return img;
+}
+
+bool regionIdentical(const juce::Image& a, const juce::Image& b,
+                     juce::Rectangle<int> r) {
+    for (int y = r.getY(); y < r.getBottom(); ++y)
+        for (int x = r.getX(); x < r.getRight(); ++x)
+            if (a.getPixelAt(x, y) != b.getPixelAt(x, y))
+                return false;
+    return true;
+}
+
+} // namespace
+
 // ------------------------------------------------------------- hit testing
 
 TEST_CASE("hitTest picks the nearest orb within 30 design px") {
@@ -362,4 +382,68 @@ TEST_CASE("fire envelope decays when live and holds under freeze") {
     CHECK(live == Approx(0.8f * std::exp(-4.5f * dt)).margin(1e-4));
     // Frozen: the pulse holds — the buffer is held, so is its light.
     CHECK(orbpad::stepFire(0.8f, true, dt) == Approx(0.8f));
+}
+
+TEST_CASE("audio energy breathes the pad field") {
+    juce::ScopedJuceInitialiser_GUI juceInit;
+    orbit::viz::VizFeed feed;
+    feed.prepare();
+
+    OrbPad pad;
+    pad.setSize(orbit::gui::theme::kPadW, orbit::gui::theme::kPadH);
+    pad.setTap(0, { true, 0.4f, 0.7f, false, false });
+    pad.setSelected(0);
+    pad.setEventSource(&feed);
+
+    const auto quiet = renderPad(pad);
+
+    orbit::viz::LevelSnapshot loud;
+    loud.outRms = 0.5f;
+    loud.duckGain = 1.0f;
+    feed.writeLevels(loud);
+    for (int i = 0; i < 4000; ++i)
+        pad.animationTick();
+
+    // The ambient envelope has risen — rings and halos brighten.
+    CHECK(!regionIdentical(quiet, renderPad(pad), quiet.getBounds()));
+}
+
+TEST_CASE("ducking nudges the painted orbs off their true position") {
+    juce::ScopedJuceInitialiser_GUI juceInit;
+    orbit::viz::VizFeed feed;
+    feed.prepare();
+
+    OrbPad pad;
+    pad.setSize(orbit::gui::theme::kPadW, orbit::gui::theme::kPadH);
+    pad.setTap(0, { true, 0.85f, 0.85f, false, false });  // far from centre
+    pad.setSelected(0);
+    pad.setEventSource(&feed);
+
+    const auto rest = renderPad(pad);
+
+    orbit::viz::LevelSnapshot ducked;
+    ducked.duckGain = 0.2f;   // heavy ducking, no output energy
+    feed.writeLevels(ducked);
+    for (int i = 0; i < 4000; ++i)
+        pad.animationTick();
+
+    CHECK(!regionIdentical(rest, renderPad(pad), rest.getBounds()));
+}
+
+TEST_CASE("freeze ices the whole field, not just the orb frost rings") {
+    juce::ScopedJuceInitialiser_GUI juceInit;
+    OrbPad pad;
+    pad.setSize(orbit::gui::theme::kPadW, orbit::gui::theme::kPadH);
+    pad.setTap(0, { true, 0.4f, 0.7f, false, false });
+    pad.setSelected(0);
+
+    const auto live = renderPad(pad);
+
+    pad.setFreeze(true);
+    for (int i = 0; i < 6000; ++i)
+        pad.animationTick();
+
+    // A corner far from every orb: the per-orb frost rings can't reach it —
+    // only the field-wide ice tint can change these pixels.
+    CHECK(!regionIdentical(live, renderPad(pad), { 0, 0, 60, 60 }));
 }

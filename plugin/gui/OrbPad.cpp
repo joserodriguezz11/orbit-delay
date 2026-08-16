@@ -401,9 +401,12 @@ bool OrbPad::animating() const {
         return true;
     if (!trail_.empty() || !sparks_.empty() || !flashes_.empty())
         return true;
-    for (const float e : fireEnv_)
-        if (e > 0.01f)
-            return true;
+    // Held (frozen) pulses are static — new events repaint via the tick's
+    // firePulse flag instead, so a long freeze doesn't repaint forever.
+    if (!freeze_)
+        for (const float e : fireEnv_)
+            if (e > 0.01f)
+                return true;
     return false;
 }
 
@@ -427,15 +430,35 @@ void OrbPad::animationTick() {
 
     // Drain real echo fires into halo pulses regardless of visibility state,
     // so the SPSC ring never backs up while the pad idles.
+    bool firePulse = false;   // a fresh event this tick (repaints held pulses)
     if (feed_ != nullptr) {
         orbit::viz::TapFireEvent ev;
         while (feed_->popEvent(ev))
-            if (ev.tapIndex < 4)
-                fireEnv_[ev.tapIndex] = juce::jmax(fireEnv_[ev.tapIndex],
-                                                   ev.intensity01);
+            if (ev.tapIndex < 4 && ev.intensity01 > fireEnv_[ev.tapIndex]) {
+                fireEnv_[ev.tapIndex] = ev.intensity01;
+                firePulse = true;
+            }
     }
 
-    if (!animating())
+    // Viz envelopes step every tick so the field breathes with the engine
+    // even when no interaction is running. Once each envelope snaps onto its
+    // target, vizMoving settles false and the idle early-out resumes.
+    float ambientTarget = 0.0f, duckTarget = 0.0f;
+    if (feed_ != nullptr) {
+        const auto lv = feed_->readLevels();
+        ambientTarget = juce::jlimit(0.0f, 1.0f, lv.outRms * 3.0f);
+        duckTarget    = juce::jlimit(0.0f, 1.0f, 1.0f - lv.duckGain);
+    }
+    const float prevAmbient = ambient_, prevDuck = duckVis_, prevFz = freezeMix_;
+    ambient_   = orbpad::stepEnvelope(ambient_, ambientTarget, 8.0f, 2.0f, dt);
+    duckVis_   = orbpad::stepEnvelope(duckVis_, duckTarget, 12.0f, 5.0f, dt);
+    freezeMix_ = orbpad::stepEnvelope(freezeMix_, freeze_ ? 1.0f : 0.0f,
+                                      6.0f, 6.0f, dt);
+    const bool vizMoving = firePulse
+                        || ambient_ != prevAmbient || duckVis_ != prevDuck
+                        || freezeMix_ != prevFz;
+
+    if (!animating() && !vizMoving)
         return;
 
     const double nowMs = now * 1000.0;
@@ -497,7 +520,7 @@ void OrbPad::animationTick() {
                                   [nowMs] (const Flash& f) { return nowMs - f.t0 >= 520.0; }),
                    flashes_.end());
     for (auto& e : fireEnv_)
-        e *= std::exp(-4.5f * dt);
+        e = orbpad::stepFire(e, freeze_, dt);
 
     repaint();
 }
@@ -511,10 +534,14 @@ void OrbPad::paint(juce::Graphics& g) {
     const auto& ch = th();
     const double nowMs = juce::Time::getMillisecondCounterHiRes();
 
-    // Field background: character-tinted radial falloff.
+    // Field background: character-tinted radial falloff, cooled by freeze.
     {
-        juce::ColourGradient bg { ch.bgTop, W * 0.5f, H * 0.42f,
-                                  ch.bgBot, W * 0.5f, H * 0.42f + 720.0f, true };
+        const float fz = freezeMix_;
+        juce::ColourGradient bg {
+            ch.bgTop.interpolatedWith(juce::Colour { 0xff0e1622 }, fz * 0.8f),
+            W * 0.5f, H * 0.42f,
+            ch.bgBot.interpolatedWith(juce::Colour { 0xff060a10 }, fz * 0.8f),
+            W * 0.5f, H * 0.42f + 720.0f, true };
         g.setGradientFill(bg);
         g.fillRect(0.0f, 0.0f, W, H);
     }
@@ -522,7 +549,11 @@ void OrbPad::paint(juce::Graphics& g) {
     const auto& selT = taps_[size_t(sel_)];
     const float spx = selT.x * W, spy = (1.0f - selT.y) * H;
     const auto selCol = theme::tapLch(selT.x, selT.y, warm_, ch);
-    const auto acc = [&] (theme::Lch c, float a) { return theme::lchColour(c, a); };
+    // Every accent colour routes through here, so the freeze ice-over is one
+    // interception: desaturated, hue-swung toward blue by the crossfade.
+    const auto acc = [&] (theme::Lch c, float a) {
+        return theme::lchColour(orbpad::frozenLch(c, freezeMix_), a);
+    };
 
     // Velocity aura: the selected orb suffuses the field, blooming with heat.
     {
@@ -557,7 +588,8 @@ void OrbPad::paint(juce::Graphics& g) {
         const float prad = std::hypot(spx - W / 2.0f, spy - H / 2.0f);
         for (float r = 44.0f; r < 640.0f; r += 44.0f) {
             const float near = std::exp(-std::abs(prad - r) / 24.0f);
-            const float a = 0.028f + 0.14f * near * (0.4f + heat_ * 0.6f);
+            const float a = 0.028f + 0.030f * ambient_
+                          + 0.14f * near * (0.4f + heat_ * 0.6f);
             g.setColour(near > 0.3f ? acc(selCol, a) : theme::bone50.withAlpha(a));
             g.drawEllipse(W / 2.0f - r, H / 2.0f - r, r * 2.0f, r * 2.0f, 1.0f);
         }
@@ -581,13 +613,14 @@ void OrbPad::paint(juce::Graphics& g) {
         const auto col = theme::tapLch(tp.x, tp.y, warm_, ch);
         const float selB = i == sel_ ? 0.05f : 0.0f;
         const float fire = fireEnv_[size_t(i)] * 0.10f;
+        const float amb = ambient_ * 0.05f;   // output energy lifts every halo
         const float r1 = 150.0f * ch.soft;
-        juce::ColourGradient g1 { acc(col, (0.07f + selB + fire) * ch.glow), px, py,
+        juce::ColourGradient g1 { acc(col, (0.07f + selB + fire + amb) * ch.glow), px, py,
                                   acc(col, 0.0f), px, py + r1, true };
         g.setGradientFill(g1);
         g.fillRect(px - r1, py - r1, r1 * 2.0f, r1 * 2.0f);
         const float r2 = 64.0f * ch.soft;
-        juce::ColourGradient g2 { acc(col, (0.24f + selB + fire) * ch.glow), px, py,
+        juce::ColourGradient g2 { acc(col, (0.24f + selB + fire + amb) * ch.glow), px, py,
                                   acc(col, 0.0f), px, py + r2, true };
         g.setGradientFill(g2);
         g.fillRect(px - r2, py - r2, r2 * 2.0f, r2 * 2.0f);
@@ -693,7 +726,7 @@ void OrbPad::paint(juce::Graphics& g) {
     // Orbs.
     for (int i = 0; i < 4; ++i) {
         const auto& tp = taps_[size_t(i)];
-        const float px = tp.x * W, py = (1.0f - tp.y) * H;
+        float px = tp.x * W, py = (1.0f - tp.y) * H;
         const auto col = theme::tapLch(tp.x, tp.y, warm_, ch);
 
         if (!tp.on) {
@@ -712,12 +745,20 @@ void OrbPad::paint(juce::Graphics& g) {
             continue;
         }
 
+        // Ducking strains the drawn orb off its true position (away from
+        // centre) and dims its glow — halos, crosshair and hit-testing stay
+        // on parameter truth, so the orb visibly leans against its own halo.
+        const auto duckOfs = orbpad::duckOffset(px, py, duckVis_);
+        px += duckOfs.x;
+        py += duckOfs.y;
+
         const float pR = i == sel_ ? 14.5f : 12.0f;
 
         // Glow (shadowBlur stand-in): a tight radial gradient behind the orb.
         {
             const float gr = pR + (14.0f + (i == sel_ ? 5.0f : 0.0f)) * ch.glow;
-            juce::ColourGradient glow { acc(col, 0.55f), px, py,
+            juce::ColourGradient glow { acc(col, 0.55f * (1.0f - 0.35f * duckVis_)),
+                                        px, py,
                                         acc(col, 0.0f), px, py + gr, true };
             g.setGradientFill(glow);
             g.fillEllipse(px - gr, py - gr, gr * 2.0f, gr * 2.0f);
@@ -761,8 +802,9 @@ void OrbPad::paint(juce::Graphics& g) {
             g.drawEllipse(px - pR - 6.0f, py - pR - 6.0f, (pR + 6.0f) * 2.0f,
                           (pR + 6.0f) * 2.0f, 1.0f);
         }
-        if (freeze_) {
-            g.setColour(acc(col, 0.55f));
+        if (freezeMix_ > 0.01f) {
+            // Frost ring fades in with the ice-over crossfade.
+            g.setColour(acc(col, 0.55f * freezeMix_));
             g.drawEllipse(px - pR - 13.0f, py - pR - 13.0f, (pR + 13.0f) * 2.0f,
                           (pR + 13.0f) * 2.0f, 1.0f);
         }
