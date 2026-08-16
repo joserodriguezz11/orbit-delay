@@ -1,4 +1,4 @@
-# Orbit — Creative Delay Plugin
+# Orbitum — Creative Delay Plugin
 
 A delay where echoes are **glowing orbs you drag on a 2D pad** — time on one axis, feedback on the other. Character modes (Clean / Tape / Grit), reverse and pitch-shifted repeats, freeze, modulation, and always-on smart ducking. Genre-agnostic, one screen, no menu-diving.
 

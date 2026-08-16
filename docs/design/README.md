@@ -63,6 +63,17 @@ Deliberate deviations from the mockup (all UI-side, engine-faithful):
   truth); freeze crossfades the whole field to a cold desaturated tint
   (hue → 250°, chroma × 0.25) with the frost rings fading in, and held
   fire pulses stop decaying while frozen.
+- **Compact re-base to 680x428** (from 900x550): pad shrinks ~30% to
+  510x280 and the 170px rail now runs the full height beside both pad
+  and the pad-wide tap strip — that column change is what absorbs the
+  shrink without squeezing the rail's knob stack. Header re-spaced
+  (capsule 164, seg 126); riding knobs 48px with a 22px label halo.
+- **Product renamed to Orbitum** (bundles, watermark, About, header;
+  plugin codes Orb1/Orba unchanged so sessions resolve). User presets
+  migrate from Synthios/Orbit to Synthios/Orbitum on first run.
+- **New logo**: vector Orbitum planet mark (tilted bone ring passing
+  behind/in front of the ink-rimmed planet disc, ember comet + spark)
+  with a compact wordmark; the SVG source's grain filter is dropped.
 
 ## Fonts
 
