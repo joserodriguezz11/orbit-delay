@@ -60,8 +60,8 @@ float stepHeat(float heat, float target01, float dt) {
 bool scaleLabelVisible(juce::Rectangle<float> label,
                        juce::Rectangle<float> timeKnob,
                        juce::Rectangle<float> fbKnob) {
-    return !label.intersects(timeKnob.expanded(26.0f))
-        && !label.intersects(fbKnob.expanded(26.0f));
+    return !label.intersects(timeKnob.expanded(22.0f))
+        && !label.intersects(fbKnob.expanded(22.0f));
 }
 
 float watermarkHeight(float baseHeight, float stringWidthAtBase,
@@ -112,7 +112,7 @@ OrbPad::OrbPad() {
     setOpaque(true);
     setMouseCursor(juce::MouseCursor::CrosshairCursor);
 
-    // Riding axis knobs: 56px, tap-linked accents, writing through onOrbMove.
+    // Riding axis knobs: 48px, tap-linked accents, writing through onOrbMove.
     addAndMakeVisible(timeKnob_);
     addAndMakeVisible(fbKnob_);
     timeKnob_.setLinked(true);
@@ -222,11 +222,12 @@ void OrbPad::updateKnobPositions() {
     const auto& tp = taps_[size_t(sel_)];
     const float W = float(kPadW), H = float(kPadH);
     // Mockup containers: TIME rides x along the bottom, FEEDBACK rides y at
-    // the left; both clamp so the 56px knob + label stay inside the field.
-    const float bx = juce::jlimit(12.0f, W - 98.0f, tp.x * W - 42.0f);
-    timeKnob_.setBounds(int(bx + 14.0f), int(H - 94.0f), 56, 56);
-    const float ly = juce::jlimit(56.0f, H - 164.0f, (1.0f - tp.y) * H - 50.0f);
-    fbKnob_.setBounds(28, int(ly + 12.0f), 56, 56);
+    // the left; both clamp so the 48px knob + label stay inside the compact
+    // field and FEEDBACK never rides down into the TIME band.
+    const float bx = juce::jlimit(12.0f, W - 88.0f, tp.x * W - 38.0f);
+    timeKnob_.setBounds(int(bx + 14.0f), int(H - 82.0f), 48, 48);
+    const float ly = juce::jlimit(44.0f, H - 144.0f, (1.0f - tp.y) * H - 46.0f);
+    fbKnob_.setBounds(28, int(ly + 12.0f), 48, 48);
 }
 
 void OrbPad::resized() {

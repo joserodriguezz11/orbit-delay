@@ -289,18 +289,35 @@ TEST_CASE("synced taps flip the TIME knob into stepped division mode") {
 }
 
 TEST_CASE("scale labels hide under a riding knob and return when it moves off") {
-    const juce::Rectangle<float> timeKnob { 300.0f, 308.0f, 56.0f, 56.0f };
-    const juce::Rectangle<float> fbKnob   {  28.0f, 120.0f, 56.0f, 56.0f };
+    const juce::Rectangle<float> timeKnob { 300.0f, 198.0f, 48.0f, 48.0f };
+    const juce::Rectangle<float> fbKnob   {  28.0f, 106.0f, 48.0f, 48.0f };
 
-    // Bottom ms label directly under the TIME knob — hidden (26px halo).
-    CHECK(!orbpad::scaleLabelVisible({ 298.0f, 383.0f, 60.0f, 10.0f }, timeKnob, fbKnob));
+    // Bottom ms label directly under the TIME knob — hidden (22px halo).
+    CHECK(!orbpad::scaleLabelVisible({ 298.0f, 261.0f, 60.0f, 10.0f }, timeKnob, fbKnob));
     // Same label with TIME knob far away — visible.
-    CHECK(orbpad::scaleLabelVisible({ 298.0f, 383.0f, 60.0f, 10.0f },
-                                    { 600.0f, 308.0f, 56.0f, 56.0f }, fbKnob));
+    CHECK(orbpad::scaleLabelVisible({ 298.0f, 261.0f, 60.0f, 10.0f },
+                                    { 600.0f, 198.0f, 48.0f, 48.0f }, fbKnob));
+    // 23px below the knob edge: outside the tightened 22px halo — visible.
+    CHECK(orbpad::scaleLabelVisible({ 298.0f, 269.0f, 60.0f, 10.0f }, timeKnob, fbKnob));
     // Left 50% label beside the FEEDBACK knob — hidden.
-    CHECK(!orbpad::scaleLabelVisible({ 9.0f, 145.0f, 24.0f, 10.0f }, timeKnob, fbKnob));
+    CHECK(!orbpad::scaleLabelVisible({ 9.0f, 130.0f, 24.0f, 10.0f }, timeKnob, fbKnob));
     // Left label well below the FEEDBACK knob — visible.
-    CHECK(orbpad::scaleLabelVisible({ 9.0f, 320.0f, 24.0f, 10.0f }, timeKnob, fbKnob));
+    CHECK(orbpad::scaleLabelVisible({ 9.0f, 240.0f, 24.0f, 10.0f }, timeKnob, fbKnob));
+}
+
+TEST_CASE("riding knobs are 48px and stay inside the compact pad") {
+    juce::ScopedJuceInitialiser_GUI juceInit;
+    OrbPad pad;
+    pad.setSize(orbit::gui::theme::kPadW, orbit::gui::theme::kPadH);
+    pad.setTap(0, { true, 0.5f, 0.5f, false, false });
+    pad.setSelected(0);
+
+    CHECK(pad.timeKnob().getWidth() == 48);
+    CHECK(pad.fbKnob().getWidth() == 48);
+    // TIME leaves room for its label above the pad's bottom edge; FEEDBACK
+    // never rides down into the TIME knob's band.
+    CHECK(pad.timeKnob().getBottom() <= orbit::gui::theme::kPadH - 14);
+    CHECK(pad.fbKnob().getBottom() < pad.timeKnob().getY());
 }
 
 TEST_CASE("watermark height scales down to fit the pad, never up") {
