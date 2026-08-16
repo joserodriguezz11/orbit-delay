@@ -200,8 +200,9 @@ void OrbitEditor::resized() {
         c.setBounds(x, y, w, h);
     };
     placeScaled(pad_, 0, theme::kHeaderH, theme::kPadW, theme::kPadH);
-    placeScaled(rail_, theme::kPadW, theme::kHeaderH, theme::kRailW, theme::kPadH);
-    placeScaled(strip_, 0, theme::kHeaderH + theme::kPadH, theme::kWindowW, theme::kTapStripH);
+    // Compact scheme: the rail runs the full height beside pad + strip.
+    placeScaled(rail_, theme::kPadW, theme::kHeaderH, theme::kRailW, theme::kRailH);
+    placeScaled(strip_, 0, theme::kHeaderH + theme::kPadH, theme::kPadW, theme::kTapStripH);
     placeScaled(header_, 0, 0, theme::kWindowW, theme::kHeaderH);
     placeScaled(browser_, 0, 0, theme::kWindowW, theme::kWindowH);
     placeScaled(settings_, 0, 0, theme::kWindowW, theme::kWindowH);

@@ -5,7 +5,9 @@
 #include <catch2/catch_approx.hpp>
 #include <cmath>
 #include "gui/OrbitEditor.h"
+#include "gui/OrbitRail.h"
 #include "gui/OrbitSync.h"
+#include "gui/OrbitTapStrip.h"
 #include "PluginProcessor.h"
 
 using Catch::Approx;
@@ -217,4 +219,28 @@ TEST_CASE("orb drags bracket the tap's parameters in a host automation gesture")
     CHECK(spy.ends == 1);
 
     fb->removeListener(&spy);
+}
+
+TEST_CASE("editor columns: full-height rail beside a pad-wide tap strip") {
+    juce::ScopedJuceInitialiser_GUI juceInit;
+    OrbitAudioProcessor proc;
+    std::unique_ptr<juce::AudioProcessorEditor> raw { proc.createEditor() };
+    auto* ed = dynamic_cast<OrbitEditor*>(raw.get());
+    REQUIRE(ed != nullptr);
+
+    namespace theme = orbit::gui::theme;
+    OrbitRail* rail = nullptr;
+    OrbitTapStrip* strip = nullptr;
+    for (auto* c : ed->getChildren()) {
+        if (auto* r = dynamic_cast<OrbitRail*>(c))     rail = r;
+        if (auto* s = dynamic_cast<OrbitTapStrip*>(c)) strip = s;
+    }
+    REQUIRE(rail != nullptr);
+    REQUIRE(strip != nullptr);
+
+    // The rail spans pad + strip height; the strip sits under the pad only.
+    CHECK(rail->getBounds() == juce::Rectangle<int>(theme::kPadW, theme::kHeaderH,
+                                                    theme::kRailW, theme::kRailH));
+    CHECK(strip->getBounds() == juce::Rectangle<int>(0, theme::kHeaderH + theme::kPadH,
+                                                     theme::kPadW, theme::kTapStripH));
 }

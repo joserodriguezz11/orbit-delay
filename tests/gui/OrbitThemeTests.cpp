@@ -9,17 +9,20 @@ namespace theme = orbit::gui::theme;
 
 // ---------------------------------------------------------------- layout
 
-TEST_CASE("layout metrics partition the 900x550 window exactly") {
-    CHECK(theme::kWindowW == 900);
-    CHECK(theme::kWindowH == 550);
+TEST_CASE("layout metrics partition the compact 680x428 window exactly") {
+    CHECK(theme::kWindowW == 680);
+    CHECK(theme::kWindowH == 428);
 
+    // Left column: header over pad over tap strip.
     CHECK(theme::kHeaderH + theme::kPadH + theme::kTapStripH == theme::kWindowH);
-
+    // Right column: the rail spans pad + strip beside them.
     CHECK(theme::kPadW + theme::kRailW == theme::kWindowW);
+    CHECK(theme::kRailH == theme::kPadH + theme::kTapStripH);
 
-    CHECK(theme::kPadW == 730);
-    CHECK(theme::kPadH == 402);
+    CHECK(theme::kPadW == 510);
+    CHECK(theme::kPadH == 280);
     CHECK(theme::kTapStripH == 96);
+    CHECK(theme::kRailW == 170);
 }
 
 TEST_CASE("type families are Space Grotesk / Space Mono / Syne watermark") {

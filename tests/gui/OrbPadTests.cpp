@@ -106,13 +106,16 @@ TEST_CASE("OrbPad paints ink for enabled, disabled, and freeze states") {
     juce::Graphics g { img };
     pad.paintEntireComponent(g, true);
 
-    int inked = 0;
+    int inked = 0, samples = 0;
     for (int y = 0; y < img.getHeight(); y += 7)
-        for (int x = 0; x < img.getWidth(); x += 7)
+        for (int x = 0; x < img.getWidth(); x += 7) {
+            ++samples;
             if (img.getPixelAt(x, y).getAlpha() > 0)
                 ++inked;
-    // The field background alone covers the pad — expect near-total coverage.
-    CHECK(inked > 5000);
+        }
+    // The field background alone covers the pad — expect near-total coverage
+    // at any pad size.
+    CHECK(inked > (samples * 9) / 10);
 }
 
 TEST_CASE("OrbPad reports selection changes and orb moves through callbacks") {

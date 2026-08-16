@@ -153,6 +153,10 @@ TEST_CASE("tap strip pills and pitch knob don't overlap at the 900px window widt
 
 TEST_CASE("rail sections distribute evenly over the full column height") {
     // Fixed content is 361 design px; three equal gaps absorb the rest.
+    // The full-height rail column (376) sits just under the fixed content +
+    // 3 floored gaps; the floor eats decorative bottom padding, not content.
+    CHECK(OrbitRail::sectionGap(float(orbit::gui::theme::kRailH)) == Approx(6.0f));
+    // A taller column distributes the surplus across the three gaps.
     CHECK(OrbitRail::sectionGap(402.0f) == Approx((402.0f - 361.0f) / 3.0f));
     // Never collapses below the 6px floor, even in a too-short column.
     CHECK(OrbitRail::sectionGap(300.0f) == Approx(6.0f));
