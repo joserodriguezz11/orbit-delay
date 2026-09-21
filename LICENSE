@@ -1,0 +1,42 @@
+Copyright (c) [YEAR] [COMPANY LEGAL NAME]. All rights reserved.
+
+This repository and its contents — source code, DSP algorithms, design
+assets, documentation, and build tooling — are the proprietary property
+of [COMPANY LEGAL NAME] ("the Company"). No part of this repository may
+be copied, modified, distributed, sublicensed, reverse engineered, or
+used to create derivative works without the Company's prior written
+permission.
+
+This is a source-availability notice, not an open-source license. If
+you have received this repository without a separate written agreement
+with the Company, you have no rights to it beyond viewing it.
+
+Use of the *compiled* Orbitum plugin binaries by end users is governed
+by the End User License Agreement (EULA.md) that accompanies each
+release, not by this file. If the two conflict as to compiled binaries,
+the EULA controls.
+
+------------------------------------------------------------------------
+Third-party components
+------------------------------------------------------------------------
+
+The compiled plugin links against or embeds the following third-party
+components, each under its own license. These licenses apply to those
+components independent of the proprietary notice above.
+
+  - JUCE framework (https://juce.com)
+    Licensed under the JUCE end-user license — either the GPLv3 (for
+    projects that are themselves open source) or a JUCE commercial
+    license (for closed-source distribution). Orbitum's own build
+    configuration and license tier are tracked separately; see
+    [TODO: link to internal note on which JUCE license this build uses].
+
+  - Space Grotesk, Space Mono, Syne (embedded font binaries)
+    Licensed under the SIL Open Font License, Version 1.1.
+    Full license text: https://openfontlicense.org
+    These fonts, including the OFL license text, may be copied and
+    redistributed as embedded components of the compiled plugin under
+    the OFL's terms; they may not be extracted and redistributed as
+    standalone font files under this notice alone.
+
+See THIRD-PARTY-LICENSES.md (if present) for full license texts.
