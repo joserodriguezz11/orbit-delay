@@ -47,7 +47,7 @@ public:
     // file contents). Empty string if the preset cannot be resolved.
     juce::String presetXmlFor(const PresetInfo&) const;
 
-    // Fixed tag vocabulary (spec §1): { Vocals, Drums, Ambient, Dub, Lo-fi,
+    // Fixed tag vocabulary (spec §1): { Ambient, Rhythm, Dub, Tape, Wide,
     // Utility }. Single source of truth for the Phase-3 filter buttons and
     // save-time tag enforcement.
     static const juce::StringArray& tagVocabulary();
@@ -68,6 +68,10 @@ public:
     bool isSlotB() const; // false = slot A live
 
     static juce::File userPresetDirectory();  // created on demand
+    // Resolves Synthios/Orbitum/Presets under the given app-data root,
+    // moving a legacy Synthios/Orbit tree there first if one exists
+    // (one-time rename — saved user presets survive the product rename).
+    static juce::File resolveUserPresetDirectory(const juce::File& appDataRoot);
 
 private:
     void parameterChanged(const juce::String& parameterID, float newValue) override;

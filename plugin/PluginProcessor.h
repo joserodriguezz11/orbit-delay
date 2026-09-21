@@ -14,7 +14,9 @@ public:
     bool isBusesLayoutSupported(const BusesLayout& layouts) const override;
     void processBlock(juce::AudioBuffer<float>&, juce::MidiBuffer&) override;
 
-    juce::AudioProcessorEditor* createEditor() override { return new juce::GenericAudioProcessorEditor(*this); }
+    // Defined in PluginProcessor.cpp — OrbitEditor.h includes this header,
+    // so the editor include must stay out of it (circular include).
+    juce::AudioProcessorEditor* createEditor() override;
     bool hasEditor() const override { return true; }
 
     const juce::String getName() const override { return JucePlugin_Name; }
@@ -37,6 +39,13 @@ public:
     juce::AudioProcessorValueTreeState apvts;
 
     orbit::PresetManager& presetManager() { return *presetManager_; }
+
+    // Live engine feed the editor polls for animation data (Phase 3 GUI).
+    orbit::viz::VizFeed& vizFeed() { return engine_.vizFeed(); }
+
+    // Last host tempo seen on the audio thread (120 until a host reports one).
+    // The editor uses it for sync-division snapping and pad gridlines.
+    double currentBpm() const { return uiBpm_.load(std::memory_order_relaxed); }
 
 private:
     void updateEngineFromParameters();
@@ -67,6 +76,7 @@ private:
     std::atomic<float>* lowCutParam_ = nullptr;
     std::atomic<float>* highCutParam_ = nullptr;
     std::atomic<float>* freezeParam_ = nullptr;
+    std::atomic<double> uiBpm_ { 120.0 };
 
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(OrbitAudioProcessor)
 };

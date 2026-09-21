@@ -122,8 +122,8 @@ juce::Array<PresetInfo> PresetManager::userPresets() const {
 const juce::StringArray& PresetManager::tagVocabulary() {
     // Single source of truth for the fixed tag set (spec §1) — Phase-3 filter
     // buttons and save-time enforcement both read from here.
-    static const juce::StringArray vocab { "Vocals", "Drums", "Ambient",
-                                           "Dub", "Lo-fi", "Utility" };
+    static const juce::StringArray vocab { "Ambient", "Rhythm", "Dub",
+                                           "Tape", "Wide", "Utility" };
     return vocab;
 }
 
@@ -251,13 +251,20 @@ bool PresetManager::isSlotB() const { return slotBActive_; }
 
 //==============================================================================
 
-juce::File PresetManager::userPresetDirectory() {
-    auto dir = juce::File::getSpecialLocation(juce::File::userApplicationDataDirectory)
-                   .getChildFile("Synthios")
-                   .getChildFile("Orbit")
-                   .getChildFile("Presets");
+juce::File PresetManager::resolveUserPresetDirectory(const juce::File& appDataRoot) {
+    const auto vendor = appDataRoot.getChildFile("Synthios");
+    const auto legacy = vendor.getChildFile("Orbit");
+    const auto current = vendor.getChildFile("Orbitum");
+    if (legacy.isDirectory() && !current.exists())
+        legacy.moveFileTo(current);   // one-time product-rename migration
+    auto dir = current.getChildFile("Presets");
     dir.createDirectory();
     return dir;
+}
+
+juce::File PresetManager::userPresetDirectory() {
+    return resolveUserPresetDirectory(
+        juce::File::getSpecialLocation(juce::File::userApplicationDataDirectory));
 }
 
 //==============================================================================

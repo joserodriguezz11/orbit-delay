@@ -1,4 +1,5 @@
 #include "PluginProcessor.h"
+#include "gui/OrbitEditor.h"
 
 namespace params = orbit::params;
 
@@ -70,8 +71,10 @@ void OrbitAudioProcessor::processBlock(juce::AudioBuffer<float>& buffer, juce::M
 
     if (auto* playhead = getPlayHead())
         if (const auto position = playhead->getPosition())
-            if (const auto bpm = position->getBpm())
+            if (const auto bpm = position->getBpm()) {
                 engine_.setBpm(*bpm);
+                uiBpm_.store(*bpm, std::memory_order_relaxed);
+            }
 
     updateEngineFromParameters();
     engine_.process(buffer.getArrayOfWritePointers(),
@@ -103,6 +106,12 @@ void OrbitAudioProcessor::setStateInformation(const void* data, int sizeInBytes)
     const int loadedVersion = static_cast<int>(tree.getProperty("stateVersion", 1));
     juce::ignoreUnused(loadedVersion);
     apvts.replaceState(tree);
+}
+
+// Out-of-line so PluginProcessor.h never includes OrbitEditor.h (which
+// includes PluginProcessor.h back).
+juce::AudioProcessorEditor* OrbitAudioProcessor::createEditor() {
+    return new OrbitEditor(*this);
 }
 
 juce::AudioProcessor* JUCE_CALLTYPE createPluginFilter() {

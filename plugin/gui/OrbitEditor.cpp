@@ -1,0 +1,209 @@
+#include "OrbitEditor.h"
+#include "OrbitSync.h"
+#include "Parameters.h"
+
+namespace theme = orbit::gui::theme;
+using orbit::dsp::SyncDivision;
+
+OrbitEditor::OrbitEditor(OrbitAudioProcessor& proc)
+    : juce::AudioProcessorEditor(proc),
+      proc_(proc),
+      rail_(proc.apvts,
+            [&proc] { return 1.0f - proc.vizFeed().readLevels().duckGain; }),
+      strip_(proc.apvts, [&proc] { return proc.currentBpm(); }),
+      header_(proc),
+      browser_(proc.presetManager()) {
+    addAndMakeVisible(pad_);
+    addAndMakeVisible(rail_);
+    addAndMakeVisible(strip_);
+    addAndMakeVisible(header_);
+    addChildComponent(browser_);   // hidden until the capsule opens it
+    addChildComponent(settings_);  // hidden until the gear opens it
+
+    header_.onBrowserToggle = [this] {
+        if (!browser_.isVisible())
+            browser_.refresh();    // pick up user presets saved mid-session
+        settings_.setVisible(false);
+        browser_.setVisible(!browser_.isVisible());
+        browser_.toFront(false);
+    };
+    browser_.onClose = [this] { browser_.setVisible(false); };
+    header_.onSettingsToggle = [this] {
+        browser_.setVisible(false);
+        settings_.setVisible(!settings_.isVisible());
+        settings_.toFront(false);
+    };
+    settings_.onClose = [this] { settings_.setVisible(false); };
+
+    pad_.setEventSource(&proc.vizFeed());
+
+    // Selection flows both ways through the editor.
+    pad_.onSelect = [this] (int i) { setSelectedTap(i); };
+    strip_.onSelect = [this] (int i) { setSelectedTap(i); };
+    pad_.onOrbMove = [this] (int i, float x, float y) { writeOrb(i, x, y); };
+    pad_.onOrbGesture = [this] (int i, bool begin) { setTapGesture(i, begin); };
+
+    // Any tap parameter change refreshes that tap's pad view + strip colour.
+    for (int i = 0; i < 4; ++i) {
+        for (const auto& id : { orbit::params::tapTimeId(i),
+                                orbit::params::tapFeedbackId(i),
+                                orbit::params::tapSyncId(i),
+                                orbit::params::tapEnabledId(i),
+                                orbit::params::tapReverseId(i) })
+            viewAtts_.push_back(std::make_unique<juce::ParameterAttachment>(
+                *proc.apvts.getParameter(id),
+                [this, i] (float) { refreshTap(i); }, nullptr));
+    }
+    viewAtts_.push_back(std::make_unique<juce::ParameterAttachment>(
+        *proc.apvts.getParameter(orbit::params::kCharacterModeId),
+        [this] (float v) {
+            pad_.setCharacter(orbit::dsp::CharacterStage::Mode(int(v)));
+            for (int i = 0; i < 4; ++i)
+                refreshTap(i);   // character retints every tap colour
+        },
+        nullptr));
+    viewAtts_.push_back(std::make_unique<juce::ParameterAttachment>(
+        *proc.apvts.getParameter(orbit::params::kFreezeId),
+        [this] (float v) { pad_.setFreeze(v > 0.5f); }, nullptr));
+
+    for (auto& att : viewAtts_)
+        att->sendInitialUpdate();
+    refreshSyncGrid();
+
+    // Slow tick: host tempo changes move the sync grid without a param edit.
+    startTimer(500);
+
+    setResizable(true, true);
+    constrainer_.setFixedAspectRatio(double(kBaseW) / double(kBaseH));
+    constrainer_.setSizeLimits(kBaseW, kBaseH, kBaseW * 2, kBaseH * 2);
+    setConstrainer(&constrainer_);
+    setSize(kBaseW, kBaseH);
+}
+
+OrbitEditor::~OrbitEditor() {
+    // A window can close mid-drag or mid-glide: never leave a host gesture
+    // dangling.
+    pad_.onOrbGesture = nullptr;
+    for (int i = 0; i < 4; ++i)
+        setTapGesture(i, false);
+}
+
+void OrbitEditor::timerCallback() {
+    if (proc_.currentBpm() == lastGridBpm_)
+        return;   // idle poll — leave the pad alone
+    refreshSyncGrid();
+    for (int i = 0; i < 4; ++i)
+        refreshTap(i);   // synced taps' x positions ride the tempo
+}
+
+void OrbitEditor::setSelectedTap(int i) {
+    pad_.setSelected(i);
+    strip_.setSelected(i);
+}
+
+void OrbitEditor::refreshTap(int i) {
+    auto& apvts = proc_.apvts;
+    // Read through the parameter object, not getRawParameterValue: parameter
+    // listeners fire in reverse registration order, so during a change
+    // notification the APVTS raw atomic (updated by its own, earlier-added
+    // listener) still holds the previous value and the view would lag one
+    // event behind host automation.
+    const auto rawf = [&apvts] (const juce::String& id) {
+        auto* p = apvts.getParameter(id);
+        return p->convertFrom0to1(p->getValue());
+    };
+
+    const int div = int(rawf(orbit::params::tapSyncId(i)));
+    const bool synced = div != int(SyncDivision::Free);
+    const float ms = synced
+        ? orbit::dsp::divisionToSeconds(SyncDivision(div), proc_.currentBpm()) * 1000.0f
+        : rawf(orbit::params::tapTimeId(i));
+
+    OrbPad::TapView view;
+    view.on = rawf(orbit::params::tapEnabledId(i)) > 0.5f;
+    view.x = theme::msToX(ms);
+    view.y = juce::jlimit(0.0f, 1.0f, rawf(orbit::params::tapFeedbackId(i)) / 0.98f);
+    view.synced = synced;
+    view.reversed = rawf(orbit::params::tapReverseId(i)) > 0.5f;
+    pad_.setTap(i, view);
+
+    const auto& ch = theme::characterTheme(orbit::dsp::CharacterStage::Mode(
+        int(rawf(orbit::params::kCharacterModeId))));
+    strip_.setTapAccent(i, theme::lchColour(
+        theme::tapLch(view.x, view.y, theme::kDefaultWarmField, ch), 1.0f));
+}
+
+void OrbitEditor::refreshSyncGrid() {
+    // Gridlines at every real division that lands inside the pad's ms range,
+    // labelled for the stepped TIME knob. Sorted by position so knob steps
+    // walk short -> long.
+    std::vector<OrbPad::SyncGridEntry> grid;
+    const double bpm = proc_.currentBpm();
+    lastGridBpm_ = bpm;
+    for (int d = 1; d < int(SyncDivision::NumDivisions); ++d) {
+        const float ms = orbit::dsp::divisionToSeconds(SyncDivision(d), bpm) * 1000.0f;
+        if (ms >= 40.0f && ms <= 900.0f)
+            grid.push_back({ theme::msToX(ms), orbit::dsp::kSyncDivisionNames[d] });
+    }
+    std::sort(grid.begin(), grid.end(),
+              [] (const auto& a, const auto& b) { return a.x < b.x; });
+    pad_.setSyncGrid(std::move(grid));
+}
+
+void OrbitEditor::setTapGesture(int i, bool begin) {
+    // Everything writeOrb can touch is bracketed as one gesture, so hosts in
+    // touch/latch mode latch the whole orb move (time + feedback + sync).
+    if (i < 0 || i >= 4 || tapGestureOpen_[size_t(i)] == begin)
+        return;
+    tapGestureOpen_[size_t(i)] = begin;
+    for (const auto& id : { orbit::params::tapTimeId(i),
+                            orbit::params::tapFeedbackId(i),
+                            orbit::params::tapSyncId(i) }) {
+        auto* param = proc_.apvts.getParameter(id);
+        if (begin)
+            param->beginChangeGesture();
+        else
+            param->endChangeGesture();
+    }
+}
+
+void OrbitEditor::writeOrb(int i, float x, float y) {
+    auto& apvts = proc_.apvts;
+
+    auto* fbParam = apvts.getParameter(orbit::params::tapFeedbackId(i));
+    fbParam->setValueNotifyingHost(fbParam->convertTo0to1(y * 0.98f));
+
+    const int div = int(apvts.getRawParameterValue(orbit::params::tapSyncId(i))->load());
+    if (div != int(SyncDivision::Free)) {
+        // Synced taps ride the division grid; free time stays untouched.
+        const int nearest = orbit::gui::nearestSyncDivision(theme::msOfX(x),
+                                                            proc_.currentBpm());
+        if (nearest != div) {
+            auto* syncParam = apvts.getParameter(orbit::params::tapSyncId(i));
+            syncParam->setValueNotifyingHost(syncParam->convertTo0to1(float(nearest)));
+        }
+    } else {
+        auto* timeParam = apvts.getParameter(orbit::params::tapTimeId(i));
+        timeParam->setValueNotifyingHost(timeParam->convertTo0to1(theme::msOfX(x)));
+    }
+}
+
+void OrbitEditor::paint(juce::Graphics& g) {
+    g.fillAll(theme::panel);
+}
+
+void OrbitEditor::resized() {
+    // Children live in design pixels; one transform scales everything.
+    const auto s = float(scale());
+    const auto placeScaled = [s] (juce::Component& c, int x, int y, int w, int h) {
+        c.setTransform(juce::AffineTransform::scale(s));
+        c.setBounds(x, y, w, h);
+    };
+    placeScaled(pad_, 0, theme::kHeaderH, theme::kPadW, theme::kPadH);
+    // Compact scheme: the rail runs the full height beside pad + strip.
+    placeScaled(rail_, theme::kPadW, theme::kHeaderH, theme::kRailW, theme::kRailH);
+    placeScaled(strip_, 0, theme::kHeaderH + theme::kPadH, theme::kPadW, theme::kTapStripH);
+    placeScaled(header_, 0, 0, theme::kWindowW, theme::kHeaderH);
+    placeScaled(browser_, 0, 0, theme::kWindowW, theme::kWindowH);
+    placeScaled(settings_, 0, 0, theme::kWindowW, theme::kWindowH);
+}

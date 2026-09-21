@@ -1,0 +1,40 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<PARAMS product="orbit" stateVersion="1">
+  <PARAM id="character_mode" value="2.0"/>
+  <PARAM id="filter_highcut" value="4500.0"/>
+  <PARAM id="filter_lowcut" value="400.0"/>
+  <PARAM id="freeze_active" value="0.0"/>
+  <PARAM id="mix_drywet" value="0.3"/>
+  <PARAM id="mix_duck" value="0.5"/>
+  <PARAM id="mix_pingpong" value="0.0"/>
+  <PARAM id="mix_width" value="1.0"/>
+  <PARAM id="mod_depth" value="0.0"/>
+  <PARAM id="mod_rate" value="0.5"/>
+  <PARAM id="tap1_enabled" value="1.0"/>
+  <PARAM id="tap1_feedback" value="0.5"/>
+  <PARAM id="tap1_pitch" value="0.0"/>
+  <PARAM id="tap1_reverse" value="0.0"/>
+  <PARAM id="tap1_sync" value="3.0"/>
+  <PARAM id="tap1_time" value="350.0"/>
+  <PARAM id="tap2_enabled" value="0.0"/>
+  <PARAM id="tap2_feedback" value="0.35"/>
+  <PARAM id="tap2_pitch" value="0.0"/>
+  <PARAM id="tap2_reverse" value="0.0"/>
+  <PARAM id="tap2_sync" value="0.0"/>
+  <PARAM id="tap2_time" value="350.0"/>
+  <PARAM id="tap3_enabled" value="0.0"/>
+  <PARAM id="tap3_feedback" value="0.35"/>
+  <PARAM id="tap3_pitch" value="0.0"/>
+  <PARAM id="tap3_reverse" value="0.0"/>
+  <PARAM id="tap3_sync" value="0.0"/>
+  <PARAM id="tap3_time" value="350.0"/>
+  <PARAM id="tap4_enabled" value="0.0"/>
+  <PARAM id="tap4_feedback" value="0.35"/>
+  <PARAM id="tap4_pitch" value="0.0"/>
+  <PARAM id="tap4_reverse" value="0.0"/>
+  <PARAM id="tap4_sync" value="0.0"/>
+  <PARAM id="tap4_time" value="350.0"/>
+  <PresetMeta name="Radio Vox Echo" tags="Wide" author="Synthios"
+              description="A band-limited, gritty quarter echo that turns a vocal into a transistor-radio broadcast."/>
+</PARAMS>
